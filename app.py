@@ -18,7 +18,11 @@ if not st.session_state.authenticated:
             st.session_state.authenticated = True
             st.session_state.username = username
             st.success("✅ Login successful!")
-            st.experimental_rerun()
+            try:
+                st.experimental_rerun()
+            except AttributeError:
+                st.info("🔄 Please refresh the page to complete login.")
+                st.stop()
         else:
             st.error("❌ Invalid credentials")
     st.stop()

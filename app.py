@@ -10,6 +10,8 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
+    import json
+    st.write("DEBUG users.json:", json.load(open("users.json")))
     st.title("🔐 Login to Solar Config App")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")

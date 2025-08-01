@@ -14,48 +14,21 @@ def logout():
 
 st.set_page_config(page_title="回路構成可否判定シート", layout="centered")
 
-# --- Authentication ---
+# ─── Authentication ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    tabs = st.tabs(["🔐 Login", "📝 Register", "🔄 Reset Password"])
-    # … same login/register/reset code as before …
-    with tabs[0]:
-        u = st.text_input("Username", key="login_usr")
-        p = st.text_input("Password", type="password", key="login_pwd")
-        if st.button("Login"):
-            if check_login(u, p):
-                st.session_state.authenticated = True
-                rerun()
-            else:
-                st.error("❌ Invalid credentials")
-    with tabs[1]:
-        ru = st.text_input("Username", key="reg_usr")
-        rp = st.text_input("Password", type="password", key="reg_pwd")
-        rc = st.text_input("Confirm Password", type="password", key="reg_confirm")
-        if st.button("Register"):
-            if not ru.strip():
-                st.error("Username cannot be empty")
-            elif rp != rc:
-                st.error("Passwords do not match")
-            elif create_user(ru, rp):
-                st.success("✅ Account created! Please log in.")
-            else:
-                st.error("❗ Username already exists")
-    with tabs[2]:
-        ru  = st.text_input("Username", key="rst_usr")
-        old = st.text_input("Old Password", type="password", key="rst_old")
-        new = st.text_input("New Password", type="password", key="rst_new")
-        cn  = st.text_input("Confirm New Password", type="password", key="rst_confirm")
-        if st.button("Reset"):
-            if new != cn:
-                st.error("New passwords must match")
-            elif not check_login(ru, old):
-                st.error("Invalid username or old password")
-            else:
-                update_password(ru, new)
-                st.success("✅ Password updated! Please log in.")
+    st.title("🔐 Login")
+    usr = st.text_input("Username", key="login_usr")
+    pwd = st.text_input("Password", type="password", key="login_pwd")
+    if st.button("Login"):
+        if check_login(usr, pwd):
+            st.session_state.authenticated = True
+            st.experimental_rerun()
+        else:
+            st.error("❌ Invalid credentials")
+    # stop here until they log in
     st.stop()
 
 # --- Main App ---

@@ -68,23 +68,34 @@ tab1, tab2 = st.tabs(["📥 Add Solar Module", "🔢 Series Calculation"])
 
 with tab1:
     st.subheader("📥 Add a New Solar Panel Module")
-    name = st.text_input("Module Name", key="mod_name")
-    voc = st.number_input("Voc (V)", value=40.79, key="mod_voc")
-    vmp = st.number_input("Vmp (V)", value=31.92, key="mod_vmp")
-    temp_coeff = st.number_input("Temperature Coefficient (%/°C)", value=-0.22, key="mod_temp")
 
-    if st.button("➕ Save Module", key="save_mod"):
-        if name.strip():
-            save_module(name, voc, vmp, temp_coeff)
-            st.success(f"✅ '{name}' saved successfully!")
+    model_number = st.text_input("型番 (Model No.)")
+    pmax       = st.number_input("【STC】最大出力, Pmax (W)",    value=0.0)
+    voc        = st.number_input("【STC】開放電圧, Voc (V)",     value=40.79)
+    vmpp       = st.number_input("【NOC】動作電圧, Vmpp (V)",    value=31.92)
+    isc        = st.number_input("【NOC】短絡電流, Isc (A)",     value=8.5)
+    temp_coeff = st.number_input(
+        "開放電圧(Voc)の温度係数（%/°C）※不明な時は-0.3として下さい。",
+        value=-0.3
+    )
+
+    if st.button("➕ Save Module"):
+        if model_number.strip():
+            save_module(model_number, pmax, voc, vmpp, isc, temp_coeff)
+            st.success(f"✅ '{model_number}' saved!")
         else:
-            st.error("❗ Module name cannot be empty.")
+            st.error("❗ 型番を入力してください。")
 
+    # List saved modules
     modules = load_modules()
     if modules:
         st.markdown("### 📃 Saved Modules")
-        for key, val in modules.items():
-            st.markdown(f"- **{key}**: Voc={val['voc']} V, Vmp={val['vmp']} V, Temp Coeff={val['temp_coeff']} %/°C")
+        for mn, m in modules.items():
+            st.markdown(
+                f"- **{mn}**: Pmax={m['pmax']}W, Voc={m['voc']}V, "
+                f"Vmpp={m['vmpp']}V, Isc={m['isc']}A, "
+                f"Coeff={m['temp_coeff']}%/°C"
+            )
 
 with tab2:
     st.subheader("🔢 Select Module & Input Conditions")

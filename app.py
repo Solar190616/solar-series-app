@@ -9,6 +9,19 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+import streamlit as st
+import math
+import pandas as pd
+# … any other imports …
+
+# ─── Safe rerun helper ───
+try:
+    rerun = st.experimental_rerun
+except AttributeError:
+    def rerun():
+        """No-op fallback if experimental_rerun isn't available."""
+        pass
+
 # ─── AUTHENTICATION & ACCOUNT MANAGEMENT ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False

@@ -86,78 +86,44 @@ with tab2:
     st.subheader("📥 Add or Edit a Solar Panel Module")
     mods = load_modules()
 
-    # Edit mode?
-    if "edit_module" in st.session_state:
-        edit_key = st.session_state.edit_module
-        m = mods.get(edit_key, {})
-        st.info(f"✏️ Editing module **{edit_key}**")
+    # … your Add / Edit form logic here …
 
-        manufacturer = st.text_input("メーカー名", value=m.get("manufacturer",""), key="mod_mfr")
-        model_no     = st.text_input("型番",       value=edit_key, disabled=True,       key="mod_no")
-        pmax         = st.number_input("STC Pmax (W)", value=m.get("pmax_stc",0.0), key="mod_pmax")
-        voc          = st.number_input("STC Voc (V)",  value=m.get("voc_stc",0.0),    key="mod_voc")
-        vmpp         = st.number_input("NOC Vmpp (V)", value=m.get("vmpp_noc",0.0), key="mod_vmpp")
-        isc          = st.number_input("NOC Isc (A)",  value=m.get("isc_noc",0.0),    key="mod_isc")
-        tc           = st.number_input("温度係数(%/°C)",  value=m.get("temp_coeff",-0.3),   key="mod_tc")
-
-        c1, c2 = st.columns(2)
-        if c1.button("💾 Save Changes"):
-            save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
-            st.success(f"✅ Updated {model_no}")
-            del st.session_state["edit_module"]
-            rerun()
-        if c2.button("❌ Cancel"):
-            del st.session_state["edit_module"]
-            rerun()
-
-    else:
-        # Add new
-        manufacturer = st.text_input("メーカー名", key="mod_mfr_new")
-        model_no     = st.text_input("型番",       key="mod_no_new")
-        pmax         = st.number_input("STC Pmax (W)", key="mod_pmax_new")
-        voc          = st.number_input("STC Voc (V)",  key="mod_voc_new")
-        vmpp         = st.number_input("NOC Vmpp (V)", key="mod_vmpp_new")
-        isc          = st.number_input("NOC Isc (A)",  key="mod_isc_new")
-        tc           = st.number_input("温度係数(%/°C)", key="mod_tc_new", value=-0.3)
-
-        if st.button("➕ Save Module"):
-            if not manufacturer.strip() or not model_no.strip():
-                st.error("メーカー名と型番は必須項目です。")
-            else:
-                save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
-                st.success(f"✅ Saved {model_no}")
-                rerun()
-
-    # Module list always shown
-    mods = load_modules()
+    # — Inline module list with Edit/Delete buttons —
     if mods:
         st.subheader("■ モジュールリスト")
         st.markdown("※使用したい太陽電池パネルの仕様を入力して下さい。…")
-        rows = []
-        for i, (mn, m) in enumerate(mods.items(), start=1):
-            rows.append({
-                "No": i,
-                "メーカー名":  m["manufacturer"],
-                "型番":        mn,
-                "STC Pmax(W)": m["pmax_stc"],
-                "STC Voc(V)":  m["voc_stc"],
-                "NOC Vmpp(V)": m["vmpp_noc"],
-                "NOC Isc(A)":  m["isc_noc"],
-                "温度係数":    m["temp_coeff"],
-            })
-        df = pd.DataFrame(rows)
-        st.table(df)
 
-        st.markdown("### ⚙️ Manage Modules")
-        choice = st.selectbox("Select Module", list(mods.keys()), key="manage_select")
-        c1, c2 = st.columns(2)
-        if c1.button("✏️ Edit"):
-            st.session_state["edit_module"] = choice
-            rerun()
-        if c2.button("🗑️ Delete"):
-            delete_module(choice)
-            st.success(f"✅ Deleted {choice}")
-            rerun()
+        # table header
+        header_cols = st.columns([1, 2, 2, 1,1,1,1,1,2])
+        headers = [
+            "No", "メーカー名", "型番",
+            "Pmax(W)", "Voc(V)", "Vmpp(V)", "Isc(A)",
+            "温度係数", "Actions"
+        ]
+        for col, h in zip(header_cols, headers):
+            col.markdown(f"**{h}**")
+
+        # rows
+        for i, (mn, m) in enumerate(mods.items(), start=1):
+            row_cols = st.columns([1, 2, 2, 1,1,1,1,1,2])
+            # data columns
+            row_cols[0].write(i)
+            row_cols[1].write(m["manufacturer"])
+            row_cols[2].write(mn)
+            row_cols[3].write(m["pmax_stc"])
+            row_cols[4].write(m["voc_stc"])
+            row_cols[5].write(m["vmpp_noc"])
+            row_cols[6].write(m["isc_noc"])
+            row_cols[7].write(m["temp_coeff"])
+            # action buttons
+            with row_cols[8]:
+                if st.button("✏️ Edit", key=f"edit_{mn}"):
+                    st.session_state.edit_module = mn
+                    st.experimental_rerun()
+                if st.button("🗑️ Delete", key=f"del_{mn}"):
+                    delete_module(mn)
+                    st.success(f"✅ Deleted {mn}")
+                    st.experimental_rerun()
 
 # --- Tab 3: Series Calculation ---
 with tab3:

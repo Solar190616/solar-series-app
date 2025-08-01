@@ -4,10 +4,10 @@ def init_db():
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
 
-    # 1) Create table with the new メーカー名 column
+    # 1) Create table with the new manufacturer column
     c.execute("""
     CREATE TABLE IF NOT EXISTS modules (
-      メーカー名 TEXT,
+      manufacturer TEXT,
       型番         TEXT PRIMARY KEY,
       pmax_stc     REAL,
       voc_stc      REAL,
@@ -22,7 +22,7 @@ def init_db():
     c.execute("PRAGMA table_info(modules)")
     existing = {row[1] for row in c.fetchall()}
     for col_def in [
-      ("メーカー名", "TEXT"),
+      ("manufacturer", "TEXT"),
       ("型番",         "TEXT"),
       ("pmax_stc",     "REAL"),
       ("voc_stc",      "REAL"),
@@ -36,14 +36,14 @@ def init_db():
     conn.commit()
     conn.close()
 
-def save_module(メーカー名, model_number, pmax, voc, vmpp, isc, temp_coeff):
+def save_module(manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff):
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
     c.execute("""
       INSERT OR REPLACE INTO modules
-        (メーカー名, 型番, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff)
+        (manufacturer, 型番, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (メーカー名, model_number, pmax, voc, vmpp, isc, temp_coeff))
+    """, (manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff))
     conn.commit()
     conn.close()
 
@@ -51,7 +51,7 @@ def load_modules():
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
     c.execute("""
-      SELECT メーカー名, 型番, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff
+      SELECT manufacturer, 型番, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff
       FROM modules
     """)
     rows = c.fetchall()
@@ -59,7 +59,7 @@ def load_modules():
     # return dict keyed by 型番
     return {
       row[1]: {
-        "メーカー名": row[0],
+        "manufacturer": row[0],
         "pmax":         row[2],
         "voc":          row[3],
         "vmpp":         row[4],

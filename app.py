@@ -157,7 +157,7 @@ with tab2:
                     delete_module(mn)
                     rerun()
 
-# --- Tab 3: Series Configuration per MPPT Input ---
+# --- Tab 3: Series‐Only Configuration per MPPT Input ---
 with tab3:
     st.subheader("🔢 回路構成入力（直列のみ）")
 
@@ -165,78 +165,76 @@ with tab3:
     if not mods:
         st.warning("⚠️ 先にモジュールを登録してください。")
     else:
-        # 1) Select module, compute adjusted Voc/Vmpp and min/max series
         choice = st.selectbox("モジュールを選択", list(mods.keys()), key="calc_mod")
         m = mods[choice]
 
+        # Temperature inputs & series bounds
         t_min = st.number_input("設置場所の最低温度 (℃)", key="calc_tmin", value=-5)
         t_max = st.number_input("設置場所の最高温度 (℃)", key="calc_tmax", value=45)
-
         v_max    = st.session_state["pcs_max"]
         v_mp_min = st.session_state["pcs_mppt_min"]
-        mppt_n   = st.session_state["pcs_mppt_count"]
 
-        voc_adj  = m["voc_stc"]  * (1 + m["temp_coeff"]/100*(t_min - 25))
-        vmpp_adj = m["vmpp_noc"] * (1 + m["temp_coeff"]/100*(t_max - 25))
+        voc_adj  = m["voc_stc"]  * (1 + m["temp_coeff"]/100*(t_min-25))
+        vmpp_adj = m["vmpp_noc"] * (1 + m["temp_coeff"]/100*(t_max-25))
         max_s    = math.floor(v_max    / voc_adj) if voc_adj>0 else 0
         min_s    = math.ceil (v_mp_min/ vmpp_adj) if vmpp_adj>0 else 0
 
         st.markdown(
-            f"**🔧 Adjusted Voc:** {voc_adj:.2f} V   "
+            f"**🔧 Adjusted Voc:** {voc_adj:.2f} V   •   "
             f"**🔧 Adjusted Vmpp:** {vmpp_adj:.2f} V"
         )
         st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚")
 
         total_modules = 0
-        errors = []
+        overall_errors = []
 
-        # 2) For each MPPT input, show a 3-row table with label, field name, and input widget
-        for i in range(mppt_n):
+        # Loop per MPPT input
+        for i in range(st.session_state["pcs_mppt_count"]):
             st.markdown("---")
+            # track a reference for this MPPT
+            ref_series = None
+
+            # render 3 rows
             for j in range(3):
                 cols = st.columns([1, 2, 2])
-                # first column: MPPT label only on first row
+                # Col 1: label only on first row
                 if j == 0:
                     cols[0].markdown(f"**MPPT入力回路{i+1}**")
                 else:
-                    cols[0].write("")  # empty placeholder
-                # second column: field label
-                cols[1].write(f"回路{j+1}の直列枚数")
-                # third column: the actual input box
-                default = min_s if j == 0 else 0
-                s = cols[2].number_input(
-                    label="",
-                    key=f"mppt{i}_ser{j}",
-                    min_value=0,
-                    max_value=max_s,
-                    value=default,
-                    step=1
-                )
-                # collect used (non-zero)
-                if s > 0:
-                    # out-of-range?
-                    if s < min_s or s > max_s:
-                        errors.append(
-                            f"MPPT{i+1}-回路{j+1}: 直列枚数は {min_s}～{max_s} 枚の範囲で入力して下さい。"
-                        )
-                    # store first used for equality check
-                    if "series_ref" not in locals() or locals().get("curr_mppt") != i:
-                        # initialize for this MPPT
-                        series_ref = s
-                        curr_mppt = i
-                    elif s != series_ref:
-                        errors.append(
-                            f"MPPT{i+1}: 全ての直列枚数を同じにして下さい。"
-                        )
-                    total_modules += s
+                    cols[0].write("")
 
-        # 3) Show errors or summary
-        if errors:
-            for e in errors:
-                st.error("❌ " + e)
+                # Col 2: field name
+                cols[1].write(f"回路{j+1}の直列枚数")
+
+                # Col 3: input + inline validation
+                with cols[2]:
+                    key = f"mppt{i}_ser{j}"
+                    default = min_s if j == 0 else 0
+                    s = st.number_input(
+                        label="",
+                        key=key,
+                        min_value=0,
+                        max_value=max_s,
+                        value=default,
+                        step=1
+                    )
+                    # only validate if s > 0
+                    if s > 0:
+                        # range check
+                        if s < min_s or s > max_s:
+                            st.error(f"{s} は {min_s}～{max_s} 枚の範囲外です。")
+                        # equality check
+                        if ref_series is None:
+                            ref_series = s
+                        elif s != ref_series:
+                            st.error("各回路の直列枚数を同じにして下さい。")
+                        total_modules += s
+
+        # final summary or message
+        if total_modules == 0:
+            st.error("少なくとも1枚は直列枚数を入力してください。")
         else:
             total_power = total_modules * m["pmax_stc"]
-            st.success("✅ 構成は有効です。")
+            st.success("✅ 全MPPT構成は有効です。")
             st.write(f"• **合計モジュール数:** {total_modules} 枚")
             st.write(f"• **合計PV出力:** {total_power:.0f} W ({total_power/1000:.2f} kW)")
-

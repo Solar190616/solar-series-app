@@ -88,17 +88,29 @@ with tab1:
             save_module(manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff)
             st.success(f"✅ '{manufacturer} {model_number}' saved!")
 
-    # List saved modules
-    modules = load_modules()
-    if modules:
-        st.markdown("### 📃 Saved Modules")
-        for mn, m in modules.items():
-            st.markdown(
-                f"- **{m['manufacturer']} {mn}**: "
-                f"Pmax={m['pmax']}W, Voc={m['voc']}V, "
-                f"Vmpp={m['vmpp']}V, Isc={m['isc']}A, "
-                f"Coeff={m['temp_coeff']}%/°C"
-            )
+   # ── after save_module() and load_modules() ──
+modules = load_modules()
+if modules:
+    st.subheader("■ モジュールリスト")
+    st.markdown("※使用したい太陽電池パネルの仕様を入力して下さい。正しく入力されていない場合は、構成可否判定が正しくできませんので、記入間違いがないように入力して下さい。")
+
+    # build rows
+    rows = []
+    for idx, (model_no, m) in enumerate(modules.items(), start=1):
+        rows.append({
+            "No": idx,
+            "メーカー名":       m["manufacturer"],
+            "型番":             model_no,
+            "【STC】最大出力 Pmax(W)":    m["pmax"],
+            "【STC】開放電圧 Voc(V)":     m["voc"],
+            "【NOC】動作電圧 Vmpp(V)":    m["vmpp"],
+            "【NOC】短絡電流 Isc(A)":     m["isc"],
+            "開放電圧(Voc)の温度係数 (%/°C) ※不明な時は-0.3として下さい。": m["temp_coeff"],
+        })
+
+    df = pd.DataFrame(rows)
+    # display as static table
+    st.table(df)
 
 with tab2:
     st.subheader("🔢 Select Module & Input Conditions")

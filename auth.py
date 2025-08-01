@@ -19,14 +19,15 @@ def check_login(user, pw):
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT password_hash FROM users WHERE username=?", (user,))
     row = c.fetchone(); conn.close()
-    return row and row[0] == hash_password(pw)
+    return bool(row and row[0] == hash_password(pw))
 
 def create_user(user, pw):
     conn = get_db(); c = conn.cursor()
     try:
-        c.execute("INSERT INTO users (username, password_hash) VALUES (?,?)",
+        c.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)",
                   (user, hash_password(pw)))
-        conn.commit(); return True
+        conn.commit()
+        return True
     except sqlite3.IntegrityError:
         return False
     finally:

@@ -69,22 +69,23 @@ tab1, tab2 = st.tabs(["📥 Add Solar Module", "🔢 Series Calculation"])
 with tab1:
     st.subheader("📥 Add a New Solar Panel Module")
 
-    model_number = st.text_input("型番 (Model No.)")
-    pmax       = st.number_input("【STC】最大出力, Pmax (W)",    value=0.0)
-    voc        = st.number_input("【STC】開放電圧, Voc (V)",     value=40.79)
-    vmpp       = st.number_input("【NOC】動作電圧, Vmpp (V)",    value=31.92)
-    isc        = st.number_input("【NOC】短絡電流, Isc (A)",     value=8.5)
-    temp_coeff = st.number_input(
-        "開放電圧(Voc)の温度係数（%/°C）※不明な時は-0.3として下さい。",
-        value=-0.3
-    )
+    manufacturer  = st.text_input("メーカー名 (Manufacturer)", key="mod_maker")
+    model_number  = st.text_input("型番 (Model No.)",       key="mod_no")
+    pmax          = st.number_input("【STC】最大出力, Pmax (W)",      value=0.0)
+    voc           = st.number_input("【STC】開放電圧, Voc (V)",       value=40.79)
+    vmpp          = st.number_input("【NOC】動作電圧, Vmpp (V)",      value=31.92)
+    isc           = st.number_input("【NOC】短絡電流, Isc (A)",       value=8.50)
+    temp_coeff    = st.number_input(
+                        "開放電圧(Voc)の温度係数（%/°C）※不明な時は-0.3として下さい。",
+                        value=-0.30
+                    )
 
     if st.button("➕ Save Module"):
-        if model_number.strip():
-            save_module(model_number, pmax, voc, vmpp, isc, temp_coeff)
-            st.success(f"✅ '{model_number}' saved!")
+        if not manufacturer.strip() or not model_number.strip():
+            st.error("❗ メーカー名と型番は必須項目です。")
         else:
-            st.error("❗ 型番を入力してください。")
+            save_module(manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff)
+            st.success(f"✅ '{manufacturer} {model_number}' saved!")
 
     # List saved modules
     modules = load_modules()
@@ -92,7 +93,8 @@ with tab1:
         st.markdown("### 📃 Saved Modules")
         for mn, m in modules.items():
             st.markdown(
-                f"- **{mn}**: Pmax={m['pmax']}W, Voc={m['voc']}V, "
+                f"- **{m['manufacturer']} {mn}**: "
+                f"Pmax={m['pmax']}W, Voc={m['voc']}V, "
                 f"Vmpp={m['vmpp']}V, Isc={m['isc']}A, "
                 f"Coeff={m['temp_coeff']}%/°C"
             )

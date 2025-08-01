@@ -17,6 +17,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+from auth import check_login, create_user, update_password
+from db   import init_db, save_module, load_modules, delete_module
+
 # Safe rerun helper
 rerun = getattr(st, "experimental_rerun", lambda: None)
 

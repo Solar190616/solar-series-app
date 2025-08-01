@@ -2,9 +2,6 @@ import streamlit as st
 import math
 import pandas as pd
 
-from auth import check_login, create_user, update_password
-from db   import init_db, save_module, load_modules, delete_module
-
 # — hide the entire top-right toolbar (share, fork, GitHub icon) —
 st.markdown(
     """

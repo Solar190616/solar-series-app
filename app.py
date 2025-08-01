@@ -74,13 +74,38 @@ tab1, tab2, tab3 = st.tabs([
     "🔢 Series & Parallel Calculation"
 ])
 
-# --- Tab 1: PCS Settings ---
+# --- Tab 1: PCS / Inverter Settings ---
 with tab1:
     st.subheader("⚙️ PCS / Inverter Settings")
-    st.number_input("PCS Max Voltage (V)",      key="pcs_max",       value=600)
-    st.number_input("PCS MPPT Min Voltage (V)", key="pcs_mppt_min",  value=250)
-    st.number_input("Number of MPPT Inputs",    key="pcs_mppt_count",value=3, min_value=1)
-    st.number_input("PCS MPPT Max Current (A)", key="pcs_mppt_current", value=14.0, format="%.1f")
+    st.markdown("Set your inverter/PCS voltage limits here.")
+
+    # ← Set these to your new defaults:
+    st.number_input(
+        "PCS Max Voltage (V)",
+        key="pcs_max",
+        value=450,      # default changed from 600 to 450
+        step=1,
+    )
+    st.number_input(
+        "PCS MPPT Min Voltage (V)",
+        key="pcs_mppt_min",
+        value=35,       # default changed from 250 to 35
+        step=1,
+    )
+    st.number_input(
+        "Number of MPPT Inputs",
+        key="pcs_mppt_count",
+        value=3,        # default kept at 3
+        min_value=1,
+        step=1,
+    )
+    st.number_input(
+        "PCS MPPT Max Current (A)",
+        key="pcs_mppt_current",
+        value=14.0,     # default changed to 14.0
+        format="%.1f",
+        step=0.1,
+    )
 
 # --- Tab 2: Add / Manage Solar Module ---
 with tab2:

@@ -22,6 +22,17 @@ except AttributeError:
         """No-op fallback if experimental_rerun isn't available."""
         pass
 
+# ─── Seed PCS defaults into session_state ───
+pcs_defaults = {
+    "pcs_max":          450,
+    "pcs_mppt_min":     35,
+    "pcs_mppt_count":    3,
+    "pcs_mppt_current": 14.0
+}
+for k, v in pcs_defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
 # ─── AUTHENTICATION & ACCOUNT MANAGEMENT ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False

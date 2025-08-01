@@ -3,7 +3,7 @@ import math
 import pandas as pd
 
 from auth import check_login, create_user, update_password
-from db   import init_db, save_module, load_modules
+from db   import init_db, save_module, load_modules, delete_module
 
 def logout():
     st.session_state.authenticated = False
@@ -11,7 +11,7 @@ def logout():
 
 st.set_page_config(page_title="回路構成可否判定シート", layout="centered")
 
-# --- Authentication ---
+# Authentication
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -44,64 +44,44 @@ if not st.session_state.authenticated:
     with tabs[2]:
         st.title("🔄 Reset Password")
         ru  = st.text_input("Username", key="rst_usr")
-        opw = st.text_input("Old Password", type="password", key="rst_old")
-        npw = st.text_input("New Password", type="password", key="rst_new")
+        old = st.text_input("Old Password", type="password", key="rst_old")
+        new = st.text_input("New Password", type="password", key="rst_new")
         cn  = st.text_input("Confirm New Password", type="password", key="rst_confirm")
         if st.button("Reset"):
-            if npw != cn:
+            if new != cn:
                 st.error("New passwords must match")
-            elif not check_login(ru, opw):
+            elif not check_login(ru, old):
                 st.error("Invalid username or old password")
             else:
-                update_password(ru, npw)
+                update_password(ru, new)
                 st.success("✅ Password updated! Please log in.")
     st.stop()
 
-# --- Main App ---
+# Main App
 st.sidebar.button("Logout", on_click=logout)
 st.title("🔋 回路構成可否判定シート")
 st.markdown("This app calculates the **minimum and maximum** number of solar panels connectable in series.")
 
-# Ensure database exists
 init_db()
 
-# Set up three tabs: PCS, Module, Calculation
 tab1, tab2, tab3 = st.tabs([
     "⚙️ PCS Settings",
-    "📥 Add Solar Module",
+    "📥 Add / Manage Solar Module",
     "🔢 Series Calculation"
 ])
 
-# --- Tab 1: PCS Settings ---
+# Tab 1: PCS
 with tab1:
     st.subheader("⚙️ PCS Settings")
-    st.markdown("Set your inverter/PCS voltage limits here.")
-    # these keys auto-persist in session_state
-    st.number_input("PCS Max Voltage (V)",      key="pcs_max",     value=600)
-    st.number_input("PCS MPPT Min Voltage (V)", key="pcs_mppt_min",value=250)
+    st.session_state.pcs_max      = st.number_input("PCS Max Voltage (V)", key="pcs_max", value=600)
+    st.session_state.pcs_mppt_min = st.number_input("PCS MPPT Min Voltage (V)", key="pcs_mppt_min", value=250)
 
-# --- Tab 2: Add Solar Module ---
+# Tab 2: Modules
 with tab2:
     st.subheader("📥 Add a New Solar Panel Module")
-    manufacturer = st.text_input("メーカー名 (Manufacturer)", key="mod_mfr")
-    model_no     = st.text_input("型番 (Model No.)",           key="mod_no")
-    pmax         = st.number_input("【STC】最大出力, Pmax (W)", key="mod_pmax")
-    voc          = st.number_input("【STC】開放電圧, Voc (V)",  key="mod_voc")
-    vmpp         = st.number_input("【NOC】動作電圧, Vmpp (V)", key="mod_vmpp")
-    isc          = st.number_input("【NOC】短絡電流, Isc (A)",  key="mod_isc")
-    tc           = st.number_input(
-        "開放電圧(Voc)の温度係数（%/°C）※不明な時は-0.3として下さい。",
-        key="mod_tc", value=-0.30
-    )
+    # … (add/edit form code) …
 
-    if st.button("➕ Save Module"):
-        if not manufacturer.strip() or not model_no.strip():
-            st.error("メーカー名と型番は必須項目です。")
-        else:
-            save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
-            st.success(f"✅ Saved: {manufacturer} {model_no}")
-
-    # Display module list
+    # **Module List Table** – this is the snippet above
     mods = load_modules()
     if mods:
         st.subheader("■ モジュールリスト")
@@ -110,35 +90,37 @@ with tab2:
         for i, (mn, m) in enumerate(mods.items(), start=1):
             rows.append({
                 "No": i,
-                "メーカー名":       m["manufacturer"],
-                "型番":             mn,
-                "【STC】Pmax(W)":   m["pmax_stc"],
-                "【STC】Voc(V)":    m["voc_stc"],
-                "【NOC】Vmpp(V)":   m["vmpp_noc"],
-                "【NOC】Isc(A)":    m["isc_noc"],
-                "温度係数(%/°C)":   m["temp_coeff"],
+                "メーカー名":    m["manufacturer"],
+                "型番":          mn,
+                "STC Pmax(W)":   m["pmax_stc"],
+                "STC Voc(V)":    m["voc_stc"],
+                "NOC Vmpp(V)":   m["vmpp_noc"],
+                "NOC Isc(A)":    m["isc_noc"],
+                "温度係数":      m["temp_coeff"],
             })
         df = pd.DataFrame(rows)
         st.table(df)
 
-# --- Tab 3: Series Calculation ---
+        # Manage buttons …
+        choice = st.selectbox("Select Module", list(mods.keys()), key="manage_select")
+        c1, c2 = st.columns(2)
+        if c1.button("✏️ Edit"): …
+        if c2.button("🗑️ Delete"): …
+
+# Tab 3: Series Calculation
 with tab3:
-    st.subheader("🔢 Select Module & Input Conditions")
+    st.subheader("🔢 Series Calculation")
     mods = load_modules()
     if not mods:
-        st.warning("⚠️ No modules yet. Add one in the PCS/Module tabs.")
+        st.warning("⚠️ No modules to calculate. Add one first.")
     else:
         choice = st.selectbox("Choose a Module", list(mods.keys()), key="calc_mod")
         m = mods[choice]
+        t_min = st.number_input("Lowest Site Temp (°C)", value=-5, key="calc_tmin")
+        t_max = st.number_input("Highest Site Temp (°C)", value=45, key="calc_tmax")
+        pcs_max      = st.session_state.pcs_max
+        pcs_mppt_min = st.session_state.pcs_mppt_min
 
-        t_min = st.number_input("Lowest Site Temp (°C)",    key="calc_tmin", value=-5)
-        t_max = st.number_input("Highest Site Temp (°C)",   key="calc_tmax", value=45)
-
-        # grab PCS settings from tab1
-        pcs_max     = st.session_state.pcs_max
-        pcs_mppt_min= st.session_state.pcs_mppt_min
-
-        # calculations
         voc_adj  = m["voc_stc"]  * (1 + m["temp_coeff"]/100 * (t_min - 25))
         vmpp_adj = m["vmpp_noc"] * (1 + m["temp_coeff"]/100 * (t_max - 25))
 

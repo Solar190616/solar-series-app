@@ -5,14 +5,16 @@ import pandas as pd
 from auth import check_login, create_user, update_password
 from db   import init_db, save_module, load_modules, delete_module
 
-# Hide the Streamlit Cloud “Source” (GitHub) and “Share” icons
+# — hide the entire top-right toolbar (share, fork, GitHub icon) —
 st.markdown(
     """
     <style>
-      /* Hide the share button in the top-right */
-      button[aria-label="Share"] {display: none !important;}
-      /* Hide the source/GitHub icon */
-      button[aria-label="Source"] {display: none !important;}
+      /* Streamlit header has two divs: 
+         - first for title/logo 
+         - second for the toolbar icons */
+      header > div:nth-child(2) {
+        display: none !important;
+      }
     </style>
     """,
     unsafe_allow_html=True,

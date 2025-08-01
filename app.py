@@ -159,53 +159,77 @@ with tab2:
 
 # --- Tab 3: Series & Parallel Calculation ---
 with tab3:
-    st.subheader("🔢 Series & Parallel Calculation")
+    st.subheader("🔢 Series & Circuit Configuration")
+
     mods = load_modules()
     if not mods:
-        st.warning("⚠️ No modules to calculate. Add one first in the previous tab.")
+        st.warning("⚠️ No modules to calculate. Add one first.")
     else:
+        # select module & compute adj Voc/Vmpp, min/max series
         choice = st.selectbox("Choose Module", list(mods.keys()), key="calc_mod")
         m = mods[choice]
 
-        t_min = st.number_input("Lowest Site Temp (℃)",    key="calc_tmin", value=-5)
-        t_max = st.number_input("Highest Site Temp (℃)",   key="calc_tmax", value=45)
+        t_min = st.number_input("Lowest Site Temp (℃)",  key="calc_tmin", value=-5)
+        t_max = st.number_input("Highest Site Temp (℃)", key="calc_tmax", value=45)
 
         # PCS settings
-        v_max    = st.session_state.get("pcs_max", 600)
+        v_max    = st.session_state.get("pcs_max",      600)
         v_mp_min = st.session_state.get("pcs_mppt_min", 250)
-        mppt_n   = st.session_state.get("pcs_mppt_count", 3)
-        i_mppt   = st.session_state.get("pcs_mppt_current", 14.0)
+        mppt_n   = st.session_state.get("pcs_mppt_count",3)
 
-        # Series calc (as before)
-        voc_adj  = m["voc_stc"]  * (1 + m["temp_coeff"]/100 * (t_min - 25))
-        vmpp_adj = m["vmpp_noc"] * (1 + m["temp_coeff"]/100 * (t_max - 25))
+        # series calculations
+        voc_adj  = m["voc_stc"]  * (1 + m["temp_coeff"]/100*(t_min - 25))
+        vmpp_adj = m["vmpp_noc"] * (1 + m["temp_coeff"]/100*(t_max - 25))
         max_s    = math.floor(v_max    / voc_adj) if voc_adj>0 else 0
         min_s    = math.ceil (v_mp_min/ vmpp_adj) if vmpp_adj>0 else 0
 
-        # Parallel calc
-        if m["isc_noc"] <= 0:
-            st.error("Invalid module Isc – must be > 0.")
-            parallel = 0
+        st.markdown(f"**🔧 Adjusted Voc:** {voc_adj:.2f} V   "
+                    f"**🔧 Adjusted Vmpp:** {vmpp_adj:.2f} V")
+        st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚")
+
+        # --- User‐input table for each MPPT circuit ---
+        st.subheader("■ モジュールの回路構成")
+        st.markdown("各回路に直列枚数を入力して下さい（0 = 未使用）。直列枚数は全回路同じにして下さい。")
+
+        cols = st.columns(mppt_n)
+        series_counts = []
+        for i in range(mppt_n):
+            cnt = cols[i].number_input(
+                f"回路{i+1}の直列枚数",
+                min_value=0,
+                step=1,
+                value=min_s,
+                key=f"cir_{i}"
+            )
+            series_counts.append(cnt)
+
+        # --- Validation ---
+        used = [c for c in series_counts if c>0]
+        errors = []
+
+        if len(used)==0:
+            errors.append("少なくとも1つの回路で直列枚数を入力して下さい。")
         else:
-            parallel = math.floor(i_mppt / m["isc_noc"])
-            if parallel < 1:
-                st.warning("Module Isc exceeds PCS MPPT current – no parallel strings possible.")
-        total_strings = mppt_n * parallel
-        total_modules = max_s * total_strings
-        total_power_w = total_modules * m["pmax_stc"]
+            # range check
+            for i, c in enumerate(used, start=1):
+                if c < min_s or c > max_s:
+                    errors.append(f"回路{i}の直列枚数は {min_s}～{max_s} 枚の範囲で入力して下さい。")
+            # equality check
+            if len(set(used))>1:
+                errors.append("各回路の直列枚数を同じにして下さい。")
 
-        # Error if no valid series or parallel
-        if min_s > max_s:
-            st.error("No valid series count (min > max). Check temperatures or PCS voltages.")
-        if parallel < 1:
-            st.error("No valid parallel strings (Isc too high).")
+        # show errors or results
+        if errors:
+            for e in errors:
+                st.error("❌ " + e)
+        else:
+            series = used[0]
+            num_str = len(used)
+            total_modules = series * num_str
+            total_power_w = total_modules * m["pmax_stc"]
+            st.success(f"✅ 有効な構成です。")
+            st.write(f"• **稼動回路数:** {num_str} 回路")
+            st.write(f"• **直列枚数:** {series} 枚/回路")
+            st.write(f"• **合計モジュール数:** {total_modules} 枚")
+            st.write(f"• **合計PV出力:** {total_power_w:.0f} W  ({total_power_w/1000:.2f} kW)")
 
-        # Display results
-        st.subheader("📊 Results")
-        st.write(f"🔧 Adjusted Voc: {voc_adj:.2f} V    🔧 Adjusted Vmpp: {vmpp_adj:.2f} V")
-        st.success(f"✅ Max Series Panels: {max_s}   •   Min Series Panels: {min_s}")
-        st.success(f"✅ Parallel Strings per MPPT: {parallel}   •   MPPT Count: {mppt_n}")
-        st.success(f"✅ Total Strings: {total_strings}")
-        st.success(f"✅ Total Modules: {total_modules}")
-        st.success(f"✅ Total PV Output: {total_power_w:.0f} W  "
-                   f"({total_power_w/1000:.2f} kW)")

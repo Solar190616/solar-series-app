@@ -3,16 +3,15 @@ import sqlite3
 def init_db():
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
-    # Create table if missing (Keeps existing data on redeploy)
     c.execute("""
     CREATE TABLE IF NOT EXISTS modules (
-      manufacturer  TEXT,
-      model_number  TEXT PRIMARY KEY,
-      pmax_stc      REAL,
-      voc_stc       REAL,
-      vmpp_noc      REAL,
-      isc_noc       REAL,
-      temp_coeff    REAL
+        manufacturer  TEXT,
+        model_number  TEXT PRIMARY KEY,
+        pmax_stc      REAL,
+        voc_stc       REAL,
+        vmpp_noc      REAL,
+        isc_noc       REAL,
+        temp_coeff    REAL
     )
     """)
     conn.commit()
@@ -26,6 +25,13 @@ def save_module(manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc
         (manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff))
+    conn.commit()
+    conn.close()
+
+def delete_module(model_number):
+    conn = sqlite3.connect("modules.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM modules WHERE model_number=?", (model_number,))
     conn.commit()
     conn.close()
 

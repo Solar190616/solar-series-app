@@ -139,77 +139,101 @@ elif page == "Modules":
 
 # ─── Circuit Config ───
 else:
-    st.header("🔢 Series-Only Circuit Config")
+    st.header("🔢 Series‐Only Circuit Configuration")
     mods = load_modules()
     if not mods:
-        st.warning("Add a module first.")
+        st.warning("⚠️ 先に「Modules」タブでモジュールを追加してください。")
     else:
+        # Module & Temps
         choice = st.selectbox("モジュールを選択", list(mods.keys()), key="cfg_mod")
         m = mods[choice]
-
         t1, t2 = st.columns(2, gap="small")
-        t_min = t1.number_input("最低温度 (℃)", key="cfg_tmin", value=-5, step=1)
-        t_max = t2.number_input("最高温度 (℃)", key="cfg_tmax", value=45, step=1)
+        t_min = t1.number_input("設置最低温度 (℃)", key="cfg_tmin", value=-5)
+        t_max = t2.number_input("設置最高温度 (℃)", key="cfg_tmax", value=45)
 
-        # fetch with defaults
-        v_max    = st.session_state.get("pcs_max", default_pcs["pcs_max"])
-        v_mp_min = st.session_state.get("pcs_mppt_min", default_pcs["pcs_mppt_min"])
-        mppt_n   = st.session_state.get("pcs_mppt_count", default_pcs["pcs_mppt_count"])
-        i_mppt   = st.session_state.get("pcs_mppt_current", default_pcs["pcs_mppt_current"])
+        # PCS settings (always present in session_state)
+        v_max    = st.session_state["pcs_max"]
+        v_mp_min = st.session_state["pcs_mppt_min"]
+        mppt_n   = st.session_state["pcs_mppt_count"]
+        i_mppt   = st.session_state["pcs_mppt_current"]
 
-        voc_a = m["voc_stc"]*(1+m["temp_coeff"]/100*(t_min-25))
-        vmpp_a= m["vmpp_noc"]*(1+m["temp_coeff"]/100*(t_max-25))
-        max_s = math.floor(v_max / voc_a) if voc_a>0 else 0
-        min_s = math.ceil(v_mp_min / vmpp_a) if vmpp_a>0 else 0
+        # Adjusted voltages & series bounds
+        voc_a   = m["voc_stc"]  * (1 + m["temp_coeff"]/100 * (t_min - 25))
+        vmpp_a  = m["vmpp_noc"] * (1 + m["temp_coeff"]/100 * (t_max - 25))
+        max_s   = math.floor(v_max / voc_a)    if voc_a>0   else 0
+        min_s   = math.ceil (v_mp_min / vmpp_a) if vmpp_a>0  else 0
 
-        st.info(f"直列可能: {min_s} 〜 {max_s} 枚", icon="ℹ️")
+        st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚", icon="ℹ️")
 
-        any_err = False
-        total_mod = 0
+        any_error    = False
+        total_modules = 0
 
+        # Loop each MPPT input
         for i in range(mppt_n):
             st.divider()
+            st.subheader(f"MPPT入力回路 {i+1}")
             ref_s = None
-            vals = []
+            series_vals = []
+
             for j in range(3):
+                label = f"回路{j+1} の直列枚数 (0=未使用)"
                 c1, c2 = st.columns([3,1], gap="small")
-                if j==0:
-                    c1.markdown(f"**MPPT回路{i+1}**")
-                else:
-                    c1.write("")
+                c1.write(label)
                 s = c2.number_input(
                     "", key=f"ser_{i}_{j}",
                     min_value=0, max_value=max_s,
                     value=(min_s if j==0 else 0), step=1
                 )
-                vals.append(s)
-                if s>0:
-                    if s<min_s or s>max_s:
-                        c2.error(f"{s}外", icon="⚠️")
-                        any_err = True
+                series_vals.append(s)
+
+                # Only validate if used
+                if s > 0:
+                    # 1) Range check
+                    if s < min_s or s > max_s:
+                        c2.error(
+                          f"入力値 {s} 枚は範囲外です。\n"
+                          f"直列枚数は {min_s}～{max_s} 枚で設定してください。",
+                          icon="🚫"
+                        )
+                        any_error = True
+
+                    # 2) Consistency check
                     if ref_s is None:
                         ref_s = s
-                    elif s!=ref_s:
-                        c2.error("同数に", icon="⚠️")
-                        any_err = True
-                    total_mod += s
+                    elif s != ref_s:
+                        c2.error(
+                          "この MPPT 内のすべての回路で同じ直列枚数を設定してください。",
+                          icon="🚫"
+                        )
+                        any_error = True
 
-            # input current check
-            branches = sum(1 for v in vals if v>0)
-            if branches>0:
-                cur = branches * m["isc_noc"]
-                if cur>i_mppt:
-                    c1,c2 = st.columns([3,1], gap="small")
-                    c2.error(f"{cur}A>限度{i_mppt}A", icon="⚠️")
-                    any_err = True
+                    total_modules += s
 
-        if any_err:
-            st.error("⚠️ エラーがあります。")
-        elif total_mod==0:
-            st.error("直列枚数を入力してください。")
+            # 3) PCS MPPT current check for this MPPT
+            used_branches = sum(1 for v in series_vals if v>0)
+            if used_branches > 0:
+                total_current = used_branches * m["isc_noc"]
+                if total_current > i_mppt:
+                    # show under the first row
+                    c1, c2 = st.columns([3,1], gap="small")
+                    c1.write("")  # placeholder
+                    c2.error(
+                      f"合計入力電流が {total_current:.1f} A です。\n"
+                      f"PCS の MPPT 許容電流は {i_mppt} A です。\n"
+                      "直列枚数または使用回路数を減らして合計電流を下げてください。",
+                      icon="🚫"
+                    )
+                    any_error = True
+
+        # Final summary
+        if any_error:
+            st.error("⚠️ 構成にエラーがあります。上記メッセージを参考に修正してください。")
+        elif total_modules == 0:
+            st.error("少なくとも 1 つの回路に直列枚数を設定してください。")
         else:
-            power = total_mod * m["pmax_stc"]
-            st.success("✅ Config valid")
-            c1,c2 = st.columns(2, gap="large")
-            c1.metric("合計モジュール", f"{total_mod}")
-            c2.metric("合計PV出力", f"{power/1000:.2f} kW")
+            total_power = total_modules * m["pmax_stc"]
+            st.success("✅ 全 MPPT 入力回路の構成は有効です。")
+            c1, c2 = st.columns(2, gap="large")
+            c1.metric("合計モジュール数", f"{total_modules} 枚")
+            c2.metric("合計 PV 出力", f"{total_power/1000:.2f} kW")
+

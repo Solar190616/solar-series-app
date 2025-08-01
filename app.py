@@ -1,139 +1,139 @@
-import pandas as pd
 import streamlit as st
 import math
+import pandas as pd
 from auth import check_login, create_user, update_password
-from db import init_db, save_module, load_modules
+from db   import init_db, save_module, load_modules
 
 def logout():
     st.session_state.authenticated = False
     st.experimental_rerun()
 
-st.set_page_config(page_title="Solar Panel Series Calculator", layout="centered")
+st.set_page_config(page_title="回路構成可否判定シート", layout="centered")
 
-# --- Authentication ---
+# ─── Authentication ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-if st.session_state.authenticated:
-    st.sidebar.button("Logout", on_click=logout)
-else:
-    auth_tabs = st.tabs(["🔐 Login", "📝 Register", "🔄 Reset Password"])
-    with auth_tabs[0]:
-        st.title("🔐 Login to Solar Config App")
-        username = st.text_input("Username", key="login_user")
-        password = st.text_input("Password", type="password", key="login_pass")
+if not st.session_state.authenticated:
+    tabs = st.tabs(["🔐 Login", "📝 Register", "🔄 Reset Password"])
+    # Login Tab
+    with tabs[0]:
+        st.title("🔐 Login")
+        usr = st.text_input("Username", key="login_usr")
+        pwd = st.text_input("Password", type="password", key="login_pwd")
         if st.button("Login"):
-            if check_login(username, password):
+            if check_login(usr, pwd):
                 st.session_state.authenticated = True
-                st.session_state.username = username
-                st.success("✅ Login successful!")
+                st.session_state.username = usr
+                st.success("✅ Logged in")
                 st.experimental_rerun()
             else:
                 st.error("❌ Invalid credentials")
-    with auth_tabs[1]:
-        st.title("📝 Register New Account")
-        new_user = st.text_input("Username", key="reg_user")
-        new_pass = st.text_input("Password", type="password", key="reg_pass")
-        confirm_pass = st.text_input("Confirm Password", type="password", key="reg_confirm")
+    # Register Tab
+    with tabs[1]:
+        st.title("📝 Register")
+        new_u = st.text_input("Username", key="reg_usr")
+        new_p = st.text_input("Password", type="password", key="reg_pwd")
+        new_pc= st.text_input("Confirm Password", type="password", key="reg_confirm")
         if st.button("Register"):
-            if not new_user.strip():
-                st.error("❗ Username cannot be empty")
-            elif new_pass != confirm_pass:
-                st.error("❗ Passwords do not match")
-            elif create_user(new_user, new_pass):
+            if not new_u.strip():
+                st.error("Username cannot be empty")
+            elif new_p != new_pc:
+                st.error("Passwords do not match")
+            elif create_user(new_u, new_p):
                 st.success("✅ Account created! Please login.")
             else:
-                st.error("❗ Username already exists")
-    with auth_tabs[2]:
+                st.error("❗ Username exists")
+    # Reset Tab
+    with tabs[2]:
         st.title("🔄 Reset Password")
-        rp_user = st.text_input("Username", key="reset_user")
-        rp_old = st.text_input("Old Password", type="password", key="reset_old")
-        rp_new = st.text_input("New Password", type="password", key="reset_new")
-        rp_confirm = st.text_input("Confirm New Password", type="password", key="reset_confirm")
-        if st.button("Reset Password"):
-            if rp_new != rp_confirm:
-                st.error("❗ New passwords do not match")
-            elif not check_login(rp_user, rp_old):
-                st.error("❌ Invalid username or old password")
+        ru  = st.text_input("Username", key="rst_usr")
+        ro  = st.text_input("Old Password", type="password", key="rst_old")
+        rn  = st.text_input("New Password", type="password", key="rst_new")
+        rnc = st.text_input("Confirm New Password", type="password", key="rst_confirm")
+        if st.button("Reset"):
+            if rn != rnc:
+                st.error("New passwords must match")
+            elif not check_login(ru, ro):
+                st.error("Invalid username or old password")
             else:
-                update_password(rp_user, rp_new)
+                update_password(ru, rn)
                 st.success("✅ Password updated! Please login.")
     st.stop()
 
-# --- Main App Content ---
+# ─── Main App ───
+st.sidebar.button("Logout", on_click=logout)
 st.title("🔋 回路構成可否判定シート")
-st.markdown("This app calculates the **minimum and maximum number of solar panels** that can be connected in series.")
+st.markdown("This app calculates the **minimum and maximum** number of solar panels connectable in series.")
 
 init_db()
 tab1, tab2 = st.tabs(["📥 Add Solar Module", "🔢 Series Calculation"])
 
+# ─── Tab 1: Add & List Modules ───
 with tab1:
     st.subheader("📥 Add a New Solar Panel Module")
-
-    manufacturer  = st.text_input("メーカー名 (Manufacturer)", key="mod_maker")
-    model_number  = st.text_input("型番 (Model No.)",       key="mod_no")
-    pmax          = st.number_input("【STC】最大出力, Pmax (W)",      value=0.0)
-    voc           = st.number_input("【STC】開放電圧, Voc (V)",       value=40.79)
-    vmpp          = st.number_input("【NOC】動作電圧, Vmpp (V)",      value=31.92)
-    isc           = st.number_input("【NOC】短絡電流, Isc (A)",       value=8.50)
-    temp_coeff    = st.number_input(
-                        "開放電圧(Voc)の温度係数（%/°C）※不明な時は-0.3として下さい。",
-                        value=-0.30
-                    )
+    manufacturer = st.text_input("メーカー名 (Manufacturer)")
+    model_no     = st.text_input("型番 (Model No.)")
+    pmax         = st.number_input("【STC】最大出力, Pmax (W)", value=0.0)
+    voc          = st.number_input("【STC】開放電圧, Voc (V)",    value=40.79)
+    vmpp         = st.number_input("【NOC】動作電圧, Vmpp (V)",   value=31.92)
+    isc          = st.number_input("【NOC】短絡電流, Isc (A)",    value=8.50)
+    tc           = st.number_input(
+        "開放電圧(Voc)の温度係数（%/°C）※不明な時は-0.3として下さい。", 
+        value=-0.30
+    )
 
     if st.button("➕ Save Module"):
-        if not manufacturer.strip() or not model_number.strip():
-            st.error("❗ メーカー名と型番は必須項目です。")
+        if not manufacturer.strip() or not model_no.strip():
+            st.error("メーカー名と型番は必須項目です。")
         else:
-            save_module(manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff)
-            st.success(f"✅ '{manufacturer} {model_number}' saved!")
+            save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
+            st.success(f"✅ Saved: {manufacturer} {model_no}")
 
-   # ── after save_module() and load_modules() ──
-modules = load_modules()
-if modules:
-    st.subheader("■ モジュールリスト")
-    st.markdown("※使用したい太陽電池パネルの仕様を入力して下さい。正しく入力されていない場合は、構成可否判定が正しくできませんので、記入間違いがないように入力して下さい。")
+    # Show module list as a table
+    mods = load_modules()
+    if mods:
+        st.subheader("■ モジュールリスト")
+        st.markdown("※使用したい太陽電池パネルの仕様を入力して下さい。…")
+        rows = []
+        for i, (mn, m) in enumerate(mods.items(), start=1):
+            rows.append({
+                "No": i,
+                "メーカー名":              m["manufacturer"],
+                "型番":                    mn,
+                "【STC】Pmax(W)":          m["pmax_stc"],
+                "【STC】Voc(V)":           m["voc_stc"],
+                "【NOC】Vmpp(V)":          m["vmpp_noc"],
+                "【NOC】Isc(A)":           m["isc_noc"],
+                "温度係数(%/°C)":          m["temp_coeff"],
+            })
+        df = pd.DataFrame(rows)
+        st.table(df)
 
-    # build rows
-    rows = []
-    for idx, (model_no, m) in enumerate(modules.items(), start=1):
-        rows.append({
-            "No": idx,
-            "メーカー名":       m["manufacturer"],
-            "型番":             model_no,
-            "【STC】最大出力 Pmax(W)":    m["pmax"],
-            "【STC】開放電圧 Voc(V)":     m["voc"],
-            "【NOC】動作電圧 Vmpp(V)":    m["vmpp"],
-            "【NOC】短絡電流 Isc(A)":     m["isc"],
-            "開放電圧(Voc)の温度係数 (%/°C) ※不明な時は-0.3として下さい。": m["temp_coeff"],
-        })
-
-    df = pd.DataFrame(rows)
-    # display as static table
-    st.table(df)
-
+# ─── Tab 2: Series Calculation ───
 with tab2:
     st.subheader("🔢 Select Module & Input Conditions")
-    modules = load_modules()
-
-    if not modules:
-        st.warning("⚠️ No modules found. Please add a module first in the 'Add Solar Module' tab.")
+    mods = load_modules()
+    if not mods:
+        st.warning("⚠️ No modules yet. Add one in the first tab.")
     else:
-        module_name = st.selectbox("Choose a Solar Panel Module", list(modules.keys()), key="select_mod")
-        module = modules[module_name]
+        choice = st.selectbox("Choose a Module", list(mods.keys()))
+        m = mods[choice]
 
-        temp_min = st.number_input("Lowest Site Temp (°C)", value=-5, key="site_min")
-        temp_max = st.number_input("Highest Site Temp (°C)", value=45, key="site_max")
-        pcs_max_v = st.number_input("PCS Max Voltage (V)", value=600, key="pcs_max")
-        pcs_mppt_min = st.number_input("PCS MPPT Min Voltage (V)", value=250, key="pcs_min")
+        t_min = st.number_input("Lowest Site Temp (°C)", value=-5)
+        t_max = st.number_input("Highest Site Temp (°C)", value=45)
+        v_max = st.number_input("PCS Max Voltage (V)",     value=600)
+        v_mp_min = st.number_input("PCS MPPT Min Voltage (V)", value=250)
 
-        voc_adj = module['voc'] * (1 + module['temp_coeff']/100*(temp_min-25))
-        vmp_adj = module['vmp'] * (1 + module['temp_coeff']/100*(temp_max-25))
-        max_series = math.floor(pcs_max_v / voc_adj)
-        min_series = math.ceil(pcs_mppt_min / vmp_adj)
+        # --- Corrected calculations ---
+        voc_adj = m["voc_stc"] * (1 + m["temp_coeff"]/100 * (t_min - 25))
+        vmpp_adj= m["vmpp_noc"] * (1 + m["temp_coeff"]/100 * (t_max - 25))
+
+        max_series = math.floor(v_max    / voc_adj)
+        min_series = math.ceil (v_mp_min / vmpp_adj)
 
         st.subheader("📊 Results")
         st.write(f"**🔧 Adjusted Voc**: {voc_adj:.2f} V")
-        st.write(f"**🔧 Adjusted Vmp**: {vmp_adj:.2f} V")
-        st.success(f"✅ **Maximum Series Panels**: {max_series}")
-        st.success(f"✅ **Minimum Series Panels**: {min_series}")
+        st.write(f"**🔧 Adjusted Vmpp**: {vmpp_adj:.2f} V")
+        st.success(f"✅ Maximum Series Panels: {max_series}")
+        st.success(f"✅ Minimum Series Panels: {min_series}")

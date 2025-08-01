@@ -9,6 +9,58 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+# ─── AUTHENTICATION & ACCOUNT MANAGEMENT ───
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("🔒 Login")
+
+    # — Login form —
+    user = st.text_input("Username", key="login_usr")
+    pwd  = st.text_input("Password", type="password", key="login_pwd")
+    if st.button("Login", key="btn_login"):
+        if check_login(user, pwd):
+            st.session_state.authenticated = True
+            rerun()
+        else:
+            st.error("❌ Invalid username or password")
+
+    st.markdown("---")
+
+    # — Sign Up (create a new account) —
+    with st.expander("📝 Sign Up", expanded=False):
+        su = st.text_input("New Username", key="sign_usr")
+        sp = st.text_input("New Password", type="password", key="sign_pwd")
+        sc = st.text_input("Confirm Password", type="password", key="sign_conf")
+        if st.button("Register", key="btn_register"):
+            if not su.strip():
+                st.error("Username cannot be empty")
+            elif sp != sc:
+                st.error("Passwords do not match")
+            elif create_user(su, sp):
+                st.success(f"✅ Account '{su}' created. You may now log in.")
+            else:
+                st.error(f"Username '{su}' already exists")
+
+    # — Reset Password —
+    with st.expander("🔄 Reset Password", expanded=False):
+        ru = st.text_input("Username", key="rst_usr")
+        old = st.text_input("Old Password", type="password", key="rst_old")
+        new = st.text_input("New Password", type="password", key="rst_new")
+        cn  = st.text_input("Confirm New Password", type="password", key="rst_cn")
+        if st.button("Reset Password", key="btn_reset"):
+            if new != cn:
+                st.error("New passwords must match")
+            elif not check_login(ru, old):
+                st.error("Invalid username or old password")
+            else:
+                update_password(ru, new)
+                st.success("✅ Password updated! Please log in.")
+
+    # prevent access to the rest of the app until authenticated
+    st.stop()
+
 # ─── GLOBAL CSS & CONFIG ───
 st.markdown("""
 <style>

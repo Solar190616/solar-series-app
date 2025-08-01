@@ -11,7 +11,7 @@ def logout():
 
 st.set_page_config(page_title="回路構成可否判定シート", layout="centered")
 
-# Authentication
+# --- Authentication ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -57,7 +57,7 @@ if not st.session_state.authenticated:
                 st.success("✅ Password updated! Please log in.")
     st.stop()
 
-# Main App
+# --- Main App ---
 st.sidebar.button("Logout", on_click=logout)
 st.title("🔋 回路構成可否判定シート")
 st.markdown("This app calculates the **minimum and maximum** number of solar panels connectable in series.")
@@ -70,18 +70,98 @@ tab1, tab2, tab3 = st.tabs([
     "🔢 Series Calculation"
 ])
 
-# Tab 1: PCS
+# --- Tab 1: PCS Settings ---
 with tab1:
     st.subheader("⚙️ PCS Settings")
-    st.session_state.pcs_max      = st.number_input("PCS Max Voltage (V)", key="pcs_max", value=600)
-    st.session_state.pcs_mppt_min = st.number_input("PCS MPPT Min Voltage (V)", key="pcs_mppt_min", value=250)
+    st.markdown("Set your inverter/PCS voltage limits here.")
+    st.session_state.pcs_max      = st.number_input(
+        "PCS Max Voltage (V)", key="pcs_max", value=600
+    )
+    st.session_state.pcs_mppt_min = st.number_input(
+        "PCS MPPT Min Voltage (V)", key="pcs_mppt_min", value=250
+    )
 
-# Tab 2: Modules
+# --- Tab 2: Add / Manage Modules ---
 with tab2:
-    st.subheader("📥 Add a New Solar Panel Module")
-    # … (add/edit form code) …
+    st.subheader("📥 Add or Edit a Solar Panel Module")
 
-    # **Module List Table** – this is the snippet above
+    mods = load_modules()
+    # Check if editing
+    if "edit_module" in st.session_state:
+        edit_key = st.session_state.edit_module
+        m = mods[edit_key]
+        st.info(f"✏️ Editing module **{edit_key}**")
+
+        manufacturer = st.text_input(
+            "メーカー名 (Manufacturer)",
+            value=m["manufacturer"],
+            key="mod_mfr"
+        )
+        model_no = st.text_input(
+            "型番 (Model No.)",
+            value=edit_key,
+            disabled=True,
+            key="mod_no"
+        )
+        pmax = st.number_input(
+            "【STC】Pmax (W)",
+            value=m["pmax_stc"],
+            key="mod_pmax"
+        )
+        voc = st.number_input(
+            "【STC】Voc (V)",
+            value=m["voc_stc"],
+            key="mod_voc"
+        )
+        vmpp = st.number_input(
+            "【NOC】Vmpp (V)",
+            value=m["vmpp_noc"],
+            key="mod_vmpp"
+        )
+        isc = st.number_input(
+            "【NOC】Isc (A)",
+            value=m["isc_noc"],
+            key="mod_isc"
+        )
+        tc = st.number_input(
+            "温度係数(%/°C) ※不明時は-0.3",
+            value=m["temp_coeff"],
+            key="mod_tc"
+        )
+
+        c1, c2 = st.columns(2)
+        if c1.button("💾 Save Changes"):
+            save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
+            st.success(f"✅ Updated {model_no}")
+            del st.session_state["edit_module"]
+            st.experimental_rerun()
+        if c2.button("❌ Cancel"):
+            del st.session_state["edit_module"]
+            st.experimental_rerun()
+
+    else:
+        # Add new module
+        manufacturer = st.text_input("メーカー名 (Manufacturer)", key="mod_mfr_new")
+        model_no     = st.text_input("型番 (Model No.)", key="mod_no_new")
+        pmax         = st.number_input("【STC】Pmax (W)", key="mod_pmax_new")
+        voc          = st.number_input("【STC】Voc (V)", key="mod_voc_new")
+        vmpp         = st.number_input("【NOC】Vmpp (V)", key="mod_vmpp_new")
+        isc          = st.number_input("【NOC】Isc (A)", key="mod_isc_new")
+        tc           = st.number_input(
+            "温度係数(%/°C) ※不明時は-0.3",
+            key="mod_tc_new",
+            value=-0.3
+        )
+
+        if st.button("➕ Save Module"):
+            if not manufacturer.strip() or not model_no.strip():
+                st.error("メーカー名と型番は必須項目です。")
+            else:
+                save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
+                st.success(f"✅ Saved {model_no}")
+                st.experimental_rerun()
+
+    # Display saved modules in a table
     mods = load_modules()
     if mods:
         st.subheader("■ モジュールリスト")
@@ -101,13 +181,18 @@ with tab2:
         df = pd.DataFrame(rows)
         st.table(df)
 
-        # Manage buttons …
+        # Manage buttons
         choice = st.selectbox("Select Module", list(mods.keys()), key="manage_select")
         c1, c2 = st.columns(2)
-        if c1.button("✏️ Edit"): …
-        if c2.button("🗑️ Delete"): …
+        if c1.button("✏️ Edit"):
+            st.session_state["edit_module"] = choice
+            st.experimental_rerun()
+        if c2.button("🗑️ Delete"):
+            delete_module(choice)
+            st.success(f"✅ Deleted {choice}")
+            st.experimental_rerun()
 
-# Tab 3: Series Calculation
+# --- Tab 3: Series Calculation ---
 with tab3:
     st.subheader("🔢 Series Calculation")
     mods = load_modules()
@@ -116,6 +201,7 @@ with tab3:
     else:
         choice = st.selectbox("Choose a Module", list(mods.keys()), key="calc_mod")
         m = mods[choice]
+
         t_min = st.number_input("Lowest Site Temp (°C)", value=-5, key="calc_tmin")
         t_max = st.number_input("Highest Site Temp (°C)", value=45, key="calc_tmax")
         pcs_max      = st.session_state.pcs_max

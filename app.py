@@ -2,396 +2,196 @@ import streamlit as st
 import math
 import pandas as pd
 
-from streamlit_option_menu import option_menu
-from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, JsCode
-
 from auth import check_login, create_user, update_password
 from db   import init_db, save_module, load_modules, delete_module
 
+# ─── Global CSS to hide Streamlit toolbar & tighten layout ───
 st.markdown("""
-    <style>
-      /* Hide Streamlit toolbar */
-      header > div:nth-child(2) {display: none !important;}
-      /* Global font & background tweaks */
-      body { font-family: 'Segoe UI', sans-serif; }
-      .stSidebar { background-color: #F7F9FC; }
-      .metric-card { background: #e3f2fd; border-radius: 8px; padding: 8px; }
-    </style>
+<style>
+  header > div:nth-child(2) {display: none !important;}
+  .css-1d391kg {padding: 1rem;}            /* tighten main area padding */
+  .css-1lcbmhc {gap: 0.5rem !important;}   /* tighten column gaps */
+</style>
 """, unsafe_allow_html=True)
 
-# safe_rerun: use st.experimental_rerun if it exists, otherwise a no-op
-try:
-    rerun = st.experimental_rerun
-except AttributeError:
-    def rerun():
-        """No-op when experimental_rerun isn't available."""
-        pass
-        
-# — hide the entire top-right toolbar (share, fork, GitHub icon) —
-st.markdown(
-    """
-    <style>
-      /* Streamlit header has two divs: 
-         - first for title/logo 
-         - second for the toolbar icons */
-      header > div:nth-child(2) {
-        display: none !important;
-      }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# Safe rerun helper
+# ─── Safe rerun helper ───
 rerun = getattr(st, "experimental_rerun", lambda: None)
 
-def logout():
-    st.session_state.authenticated = False
-    rerun()
-
-st.set_page_config(page_title="回路構成可否判定シート", layout="centered")
+# ─── Page Setup ───
+st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
 
 # ─── Authentication ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("🔐 Login")
-    usr = st.text_input("Username", key="login_usr")
-    pwd = st.text_input("Password", type="password", key="login_pwd")
-    if st.button("Login"):
-        if check_login(usr, pwd):
+    st.title("🔒 Login")
+    u = st.text_input("Username", key="login_usr")
+    p = st.text_input("Password", type="password", key="login_pwd")
+    if st.button("Login", key="login_btn"):
+        if check_login(u, p):
             st.session_state.authenticated = True
             rerun()
         else:
-            st.error("❌ Invalid credentials")
-    # stop here until they log in
+            st.error("Invalid credentials")
     st.stop()
 
-# Sidebar menu
-with st.sidebar:
-    selected = option_menu(
-        "🔋 Solar Series App",
-        ["PCS Settings","Modules","Calculation"],
-        icons=["gear","grid","calculator"],
-        menu_icon="cast",
-        default_index=0,
-    )
+# ─── Sidebar & Logout ───
+st.sidebar.button("🔓 Logout", on_click=lambda: (st.session_state.update({"authenticated": False}), rerun()))
+page = st.sidebar.radio(
+    "☰ Menu",
+    ["PCS Settings", "Modules", "Circuit Config"],
+    index=0,
+    key="menu_radio"
+)
 
-if selected == "PCS Settings":
+# ─── PCS Settings ───
+if page == "PCS Settings":
     st.header("⚙️ PCS / Inverter Settings")
-    with st.container():
-        c1, c2 = st.columns(2, gap="small")
-        pcs_max      = c1.number_input("Max Voltage (V)", key="pcs_max",      value=450)
-        pcs_mppt_min = c2.number_input("MPPT Min Voltage (V)", key="pcs_mppt_min", value=35)
-    with st.container():
-        c1, c2 = st.columns(2, gap="small")
-        pcs_mppt_count   = c1.number_input("MPPT Inputs", key="pcs_mppt_count", value=3, min_value=1)
-        pcs_mppt_current = c2.number_input("MPPT Max Current (A)", key="pcs_mppt_current",
-                                           value=14.0, format="%.1f")
-elif selected == "Modules":
-    st.header("📥 Manage Solar Modules")
+    st.number_input("PCS Max Voltage (V)",       key="pcs_max",       value=450, step=1)
+    st.number_input("PCS MPPT Min Voltage (V)",  key="pcs_mppt_min",  value=35, step=1)
+    st.number_input("Number of MPPT Inputs",     key="pcs_mppt_count",value=3,  min_value=1, step=1)
+    st.number_input("PCS MPPT Max Current (A)",  key="pcs_mppt_current",value=14.0, format="%.1f", step=0.1)
+
+# ─── Modules ───
+elif page == "Modules":
+    st.header("📥 Add / Manage Solar Modules")
     init_db()
     mods = load_modules()
 
-    # — Add / Edit form —
+    # — Add New Module —
     with st.expander("➕ Add New Module", expanded=False):
-        mfr = st.text_input("メーカー名", key="mod_mfr_new")
-        no  = st.text_input("型番",       key="mod_no_new")
-        c1, c2 = st.columns(2, gap="small")
-        pmax = c1.number_input("STC Pmax (W)", key="mod_pmax_new")
-        voc  = c2.number_input("STC Voc (V)",  key="mod_voc_new")
-        c3, c4 = st.columns(2, gap="small")
-        vmpp = c3.number_input("NOC Vmpp (V)", key="mod_vmpp_new")
-        isc  = c4.number_input("NOC Isc (A)",  key="mod_isc_new")
-        tc   = st.number_input("温度係数(%/°C)", key="mod_tc_new", value=-0.3)
-        if st.button("Save Module"):
-            save_module(mfr,no,pmax,voc,vmpp,isc,tc)
-            st.success("Saved!")
-
-    # — Interactive table with AgGrid —
-    if mods:
-        st.subheader("■ モジュールリスト")
-        df = pd.DataFrame([
-            {
-                "メーカー名": m["manufacturer"],
-                "型番":       mn,
-                "Pmax(W)":    m["pmax_stc"],
-                "Voc(V)":     m["voc_stc"],
-                "Vmpp(V)":    m["vmpp_noc"],
-                "Isc(A)":     m["isc_noc"],
-                "TempCoeff":  m["temp_coeff"],
-            }
-            for mn,m in mods.items()
-        ])
-        gb = GridOptionsBuilder.from_dataframe(df)
-        gb.configure_selection(selection_mode="single", use_checkbox=True)
-        grid_opts = gb.build()
-        grid_response = AgGrid(
-            df,
-            gridOptions=grid_opts,
-            data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
-            update_mode="MODEL_CHANGED",
-            height=300,
-            fit_columns_on_grid_load=True,
-        )
-        sel = grid_response["selected_rows"]
-        if sel:
-            chosen = sel[0]["型番"]
-            c1, c2 = st.columns(2)
-            if c1.button("✏️ Edit"):
-                st.session_state.edit_module = chosen
-                rerun()
-            if c2.button("🗑️ Delete"):
-                delete_module(chosen)
-                st.success("Deleted!")
-                rerun()
-elif selected == "Calculation":
-    st.header("🔢 Series & Parallel Calculation")
-    mods = load_modules()
-    if not mods:
-        st.warning("Add some modules first.")
-    else:
-        # — select module & temps —
-        choice = st.selectbox("Module", list(mods.keys()))
-        m = mods[choice]
-        t1, t2 = st.columns(2, gap="small")
-        t_min = t1.number_input("Lowest Temp (℃)", key="calc_tmin", value=-5)
-        t_max = t2.number_input("Highest Temp (℃)", key="calc_tmax", value=45)
-
-        # — compute series & present as metrics —
-        # [ your existing series+parallel logic here ]
-        # say you get max_s, min_s, total_modules, total_power
-
-        st.markdown("""<div class="metric-card">""", unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3, gap="small")
-        c1.metric("Min Series", f"{min_s}")
-        c2.metric("Max Series", f"{max_s}")
-        c3.metric("Total Modules", f"{total_modules}")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.metric("Total PV Output", f"{total_power/1000:.2f} kW")
-
-# --- Main App ---
-st.sidebar.button("Logout", on_click=logout)
-st.title("🔋 回路構成可否判定シート")
-st.markdown(
-    "This app calculates the **minimum and maximum** number of solar panels connectable in series, "
-    "**parallel** strings, total modules, and total PV output."
-)
-
-init_db()
-
-tab1, tab2, tab3 = st.tabs([
-    "⚙️ PCS Settings",
-    "📥 Add / Manage Solar Module",
-    "🔢 Series & Parallel Calculation"
-])
-
-# --- Tab 1: PCS / Inverter Settings ---
-with tab1:
-    st.subheader("⚙️ PCS / Inverter Settings")
-    st.markdown("Set your inverter/PCS voltage limits here.")
-
-    # ← Set these to your new defaults:
-    st.number_input(
-        "PCS Max Voltage (V)",
-        key="pcs_max",
-        value=450,      # default changed from 600 to 450
-        step=1,
-    )
-    st.number_input(
-        "PCS MPPT Min Voltage (V)",
-        key="pcs_mppt_min",
-        value=35,       # default changed from 250 to 35
-        step=1,
-    )
-    st.number_input(
-        "Number of MPPT Inputs",
-        key="pcs_mppt_count",
-        value=3,        # default kept at 3
-        min_value=1,
-        step=1,
-    )
-    st.number_input(
-        "PCS MPPT Max Current (A)",
-        key="pcs_mppt_current",
-        value=14.0,     # default changed to 14.0
-        format="%.1f",
-        step=0.1,
-    )
-
-# --- Tab 2: Add / Manage Solar Module ---
-with tab2:
-    st.subheader("📥 Add or Edit a Solar Panel Module")
-    mods = load_modules()
-
-    # Edit mode?
-    if "edit_module" in st.session_state:
-        key = st.session_state.edit_module
-        m = mods.get(key, {})
-        st.info(f"✏️ Editing **{key}**")
-
-        manufacturer = st.text_input("メーカー名", value=m.get("manufacturer",""), key="mod_mfr")
-        model_no     = st.text_input("型番",     value=key,            disabled=True, key="mod_no")
-        pmax         = st.number_input("STC Pmax (W)", value=m.get("pmax_stc",0.0), key="mod_pmax")
-        voc          = st.number_input("STC Voc (V)",  value=m.get("voc_stc",0.0),  key="mod_voc")
-        vmpp         = st.number_input("NOC Vmpp (V)", value=m.get("vmpp_noc",0.0), key="mod_vmpp")
-        isc          = st.number_input("NOC Isc (A)",  value=m.get("isc_noc",0.0),  key="mod_isc")
-        tc           = st.number_input("温度係数(%/°C)",  value=m.get("temp_coeff",-0.3), key="mod_tc")
-
+        m1, m2 = st.columns(2)
+        manufacturer = m1.text_input("メーカー名", key="new_mfr")
+        model_no     = m2.text_input("型番",       key="new_no")
         c1, c2 = st.columns(2)
-        if c1.button("💾 Save Changes"):
-            save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
-            del st.session_state["edit_module"]
-            rerun()
-        if c2.button("❌ Cancel"):
-            del st.session_state["edit_module"]
-            rerun()
-
-    else:
-        # Add new
-        manufacturer = st.text_input("メーカー名", key="mod_mfr_new")
-        model_no     = st.text_input("型番",       key="mod_no_new")
-        pmax         = st.number_input("STC Pmax (W)", key="mod_pmax_new")
-        voc          = st.number_input("STC Voc (V)",  key="mod_voc_new")
-        vmpp         = st.number_input("NOC Vmpp (V)", key="mod_vmpp_new")
-        isc          = st.number_input("NOC Isc (A)",  key="mod_isc_new")
-        tc           = st.number_input("温度係数(%/°C)", key="mod_tc_new", value=-0.3)
-
-        if st.button("➕ Save Module"):
+        pmax = c1.number_input("STC Pmax (W)", key="new_pmax")
+        voc  = c2.number_input("STC Voc (V)",  key="new_voc")
+        c3, c4 = st.columns(2)
+        vmpp = c3.number_input("NOC Vmpp (V)", key="new_vmpp")
+        isc  = c4.number_input("NOC Isc (A)",  key="new_isc")
+        tc   = st.number_input("温度係数(％/℃)", key="new_tc", value=-0.3)
+        if st.button("Save Module", key="btn_save_new"):
             if not manufacturer.strip() or not model_no.strip():
                 st.error("メーカー名と型番は必須です。")
             else:
                 save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
+                st.success(f"Saved {model_no}")
                 rerun()
 
-    # Inline Table with Edit/Delete
-    mods = load_modules()
+    # — Module List with Inline Edit/Delete —
     if mods:
         st.subheader("■ モジュールリスト")
         # header
-        hdr_cols = st.columns([1,2,2,1,1,1,1,1,2])
-        headers = ["No","メーカー名","型番","Pmax(W)","Voc(V)",
-                   "Vmpp(V)","Isc(A)","温度係数","Actions"]
-        for col, h in zip(hdr_cols, headers):
+        hdr = st.columns([1,2,2,1,1,1,1,1,2])
+        for col, h in zip(hdr, ["No","メーカー名","型番","Pmax","Voc","Vmpp","Isc","Tc",""]):
             col.markdown(f"**{h}**")
-
         # rows
         for idx, (mn, m) in enumerate(mods.items(), start=1):
-            row_cols = st.columns([1,2,2,1,1,1,1,1,2])
-            row_cols[0].write(idx)
-            row_cols[1].write(m["manufacturer"])
-            row_cols[2].write(mn)
-            row_cols[3].write(m["pmax_stc"])
-            row_cols[4].write(m["voc_stc"])
-            row_cols[5].write(m["vmpp_noc"])
-            row_cols[6].write(m["isc_noc"])
-            row_cols[7].write(m["temp_coeff"])
-            with row_cols[8]:
-                if st.button("✏️", key=f"edit_{mn}"):
-                    st.session_state["edit_module"] = mn
+            cols = st.columns([1,2,2,1,1,1,1,1,2])
+            cols[0].write(idx)
+            cols[1].write(m["manufacturer"])
+            cols[2].write(mn)
+            cols[3].write(m["pmax_stc"])
+            cols[4].write(m["voc_stc"])
+            cols[5].write(m["vmpp_noc"])
+            cols[6].write(m["isc_noc"])
+            cols[7].write(m["temp_coeff"])
+            with cols[8]:
+                if st.button("✏️", key=f"e_{mn}"):
+                    st.session_state.edit_mod = mn
                     rerun()
-                if st.button("🗑️", key=f"del_{mn}"):
+                if st.button("🗑️", key=f"d_{mn}"):
                     delete_module(mn)
+                    st.success(f"Deleted {mn}")
                     rerun()
 
-# --- Tab 3: Series‐Only Configuration per MPPT Input ---
-with tab3:
-    st.subheader("🔢 回路構成入力（直列のみ）")
+    # — Edit Selected Module —
+    if "edit_mod" in st.session_state:
+        mn = st.session_state.edit_mod
+        data = load_modules().get(mn, {})
+        st.subheader(f"✏️ Edit {mn}")
+        mf = st.text_input("メーカー名", value=data.get("manufacturer",""), key="edit_mfr")
+        pm = st.number_input("STC Pmax (W)",    value=data.get("pmax_stc",0.0), key="edit_pmax")
+        vc = st.number_input("STC Voc (V)",     value=data.get("voc_stc",0.0),   key="edit_voc")
+        vm = st.number_input("NOC Vmpp (V)",    value=data.get("vmpp_noc",0.0),  key="edit_vmpp")
+        ic = st.number_input("NOC Isc (A)",     value=data.get("isc_noc",0.0),   key="edit_isc")
+        tc = st.number_input("温度係数(％/℃)",  value=data.get("temp_coeff", -0.3), key="edit_tc")
+        if st.button("Save Changes", key="btn_save_edit"):
+            save_module(mf, mn, pm, vc, vm, ic, tc)
+            st.success(f"Updated {mn}")
+            del st.session_state["edit_mod"]
+            rerun()
 
+# ─── Circuit Config ───
+else:
+    st.header("🔢 Series-Only Circuit Config")
     mods = load_modules()
     if not mods:
-        st.warning("⚠️ 先にモジュールを登録してください。")
+        st.warning("⚠️ Add a solar module first.")
     else:
-        # 1) Module & bounds
-        choice = st.selectbox("モジュールを選択", list(mods.keys()), key="calc_mod")
+        choice = st.selectbox("モジュールを選択", list(mods.keys()), key="cfg_mod")
         m = mods[choice]
 
-        t_min = st.number_input("設置場所の最低温度 (℃)", key="calc_tmin", value=-5)
-        t_max = st.number_input("設置場所の最高温度 (℃)", key="calc_tmax", value=45)
+        t1, t2 = st.columns(2, gap="small")
+        t_min = t1.number_input("最低温度 (℃)", key="cfg_tmin", value=-5, step=1)
+        t_max = t2.number_input("最高温度 (℃)", key="cfg_tmax", value=45, step=1)
 
+        # PCS & module bounds
         v_max    = st.session_state["pcs_max"]
         v_mp_min = st.session_state["pcs_mppt_min"]
         mppt_n   = st.session_state["pcs_mppt_count"]
         i_mppt   = st.session_state["pcs_mppt_current"]
 
-        voc_adj  = m["voc_stc"]  * (1 + m["temp_coeff"]/100*(t_min-25))
-        vmpp_adj = m["vmpp_noc"] * (1 + m["temp_coeff"]/100*(t_max-25))
-        max_s    = math.floor(v_max    / voc_adj) if voc_adj>0 else 0
-        min_s    = math.ceil (v_mp_min/ vmpp_adj) if vmpp_adj>0 else 0
+        voc_a = m["voc_stc"]*(1+m["temp_coeff"]/100*(t_min-25))
+        vmpp_a= m["vmpp_noc"]*(1+m["temp_coeff"]/100*(t_max-25))
+        max_s = math.floor(v_max / voc_a) if voc_a>0 else 0
+        min_s = math.ceil(v_mp_min / vmpp_a) if vmpp_a>0 else 0
 
-        st.markdown(
-            f"**🔧 Adjusted Voc:** {voc_adj:.2f} V   •   "
-            f"**🔧 Adjusted Vmpp:** {vmpp_adj:.2f} V"
-        )
-        st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚")
+        st.info(f"直列 possible: {min_s} 〜 {max_s} 枚", icon="ℹ️")
 
-        total_modules = 0
-        any_error = False
+        any_err = False
+        total_mod = 0
 
-        # 2) Loop each MPPT input
+        # per-MPPT
         for i in range(mppt_n):
-            st.markdown("---")
-            ref_series = None
-            series_vals = []
+            st.divider()
+            ref_s = None
+            vals = []
 
-            # 2a) Series inputs (3 rows)
             for j in range(3):
-                cols = st.columns([1, 2, 2])
-                if j == 0:
-                    cols[0].markdown(f"**MPPT入力回路{i+1}**")
-                else:
-                    cols[0].write("")
-
-                cols[1].write(f"回路{j+1}の直列枚数")
-                key = f"mppt{i}_ser{j}"
-                default = min_s if j == 0 else 0
-                s = cols[2].number_input(
-                    "", key=key,
+                c1, c2 = st.columns([3,1], gap="small")
+                if j==0: c1.markdown(f"**MPPT入{i+1} 回路{j+1}**")
+                else:   c1.write("")
+                s = c2.number_input(
+                    "", key=f"ser_{i}_{j}",
                     min_value=0, max_value=max_s,
-                    value=default, step=1
+                    value=(min_s if j==0 else 0), step=1
                 )
-                series_vals.append(s)
+                vals.append(s)
+                if s>0:
+                    if s<min_s or s>max_s:
+                        c2.error(f"{s}外", icon="⚠️"); any_err=True
+                    if ref_s is None: ref_s=s
+                    elif s!=ref_s:
+                        c2.error("同数に", icon="⚠️"); any_err=True
+                    total_mod += s
 
-                # Inline range check
-                if s > 0 and (s < min_s or s > max_s):
-                    cols[2].error(f"{s} は {min_s}～{max_s} 枚の範囲外です。")
-                    any_error = True
+            # current‐sum check
+            branches = sum(1 for v in vals if v>0)
+            if branches>0:
+                cur = branches * m["isc_noc"]
+                if cur>i_mppt:
+                    c1,c2=st.columns([3,1], gap="small")
+                    c2.error(f"{cur}A>限度{i_mppt}A", icon="⚠️"); any_err=True
 
-                # Inline equality check
-                if s > 0:
-                    if ref_series is None:
-                        ref_series = s
-                    elif s != ref_series:
-                        cols[2].error("全ての直列枚数を同じにしてください。")
-                        any_error = True
-
-            # 2b) Current‐sum check
-            branches = sum(1 for v in series_vals if v>0)
-            if branches > 0:
-                total_current = branches * m["isc_noc"]
-                if total_current > i_mppt:
-                    # show under first row
-                    cols = st.columns([1,2,2])
-                    cols[0].write("")  # placeholder
-                    cols[1].write("")
-                    cols[2].error(
-                        f"合計入力電流 {total_current:.1f}A が PCS許容 {i_mppt}A を超えています。"
-                    )
-                    any_error = True
-                else:
-                    # accumulate modules only when no error in this group
-                    if not any_error:
-                        total_modules += branches * ref_series if ref_series else 0
-
-        # 3) Final summary or errors
-        if any_error:
-            st.error("構成にエラーがあります。上記のメッセージをご確認ください。")
-        elif total_modules == 0:
-            st.error("少なくとも1つの回路に直列枚数を入力してください。")
+        if not any_err and total_mod>0:
+            power = total_mod * m["pmax_stc"]
+            st.success("✅ Valid configuration")
+            c1,c2 = st.columns(2, gap="large")
+            c1.metric("合計モジュール", f"{total_mod}")
+            c2.metric("合計出力", f"{power/1000:.2f} kW")
+        elif total_mod==0:
+            st.error("直列枚数をいずれか入力")
         else:
-            total_power = total_modules * m["pmax_stc"]
-            st.success("✅ 全MPPT構成は有効です。")
-            st.write(f"• **合計モジュール数:** {total_modules} 枚")
-            st.write(f"• **合計PV出力:** {total_power:.0f} W ({total_power/1000:.2f} kW)")
+            st.error("⚠️ Errors exist; please fix above.")

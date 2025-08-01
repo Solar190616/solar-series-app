@@ -2,6 +2,14 @@ import streamlit as st
 import math
 import pandas as pd
 
+# safe_rerun: use st.experimental_rerun if it exists, otherwise a no-op
+try:
+    rerun = st.experimental_rerun
+except AttributeError:
+    def rerun():
+        """No-op when experimental_rerun isn't available."""
+        pass
+        
 # — hide the entire top-right toolbar (share, fork, GitHub icon) —
 st.markdown(
     """
@@ -40,7 +48,7 @@ if not st.session_state.authenticated:
     if st.button("Login"):
         if check_login(usr, pwd):
             st.session_state.authenticated = True
-            st.experimental_rerun()
+            rerun()
         else:
             st.error("❌ Invalid credentials")
     # stop here until they log in

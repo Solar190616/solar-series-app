@@ -2,12 +2,6 @@ import streamlit as st
 import math
 import pandas as pd
 
-from streamlit_option_menu import option_menu
-from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, JsCode
-
-from auth import check_login, create_user, update_password
-from db   import init_db, save_module, load_modules, delete_module
-
 # safe_rerun: use st.experimental_rerun if it exists, otherwise a no-op
 try:
     rerun = st.experimental_rerun
@@ -39,6 +33,12 @@ def logout():
     rerun()
 
 st.set_page_config(page_title="回路構成可否判定シート", layout="centered")
+
+from streamlit_option_menu import option_menu
+from st_aggrid import AgGrid, GridOptionsBuilder, DataReturnMode, JsCode
+
+from auth import check_login, create_user, update_password
+from db   import init_db, save_module, load_modules, delete_module
 
 # ─── Authentication ───
 if "authenticated" not in st.session_state:

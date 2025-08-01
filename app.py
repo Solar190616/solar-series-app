@@ -78,6 +78,100 @@ with st.sidebar:
         default_index=0,
     )
 
+if selected == "PCS Settings":
+    st.header("⚙️ PCS / Inverter Settings")
+    with st.container():
+        c1, c2 = st.columns(2, gap="small")
+        pcs_max      = c1.number_input("Max Voltage (V)", key="pcs_max",      value=450)
+        pcs_mppt_min = c2.number_input("MPPT Min Voltage (V)", key="pcs_mppt_min", value=35)
+    with st.container():
+        c1, c2 = st.columns(2, gap="small")
+        pcs_mppt_count   = c1.number_input("MPPT Inputs", key="pcs_mppt_count", value=3, min_value=1)
+        pcs_mppt_current = c2.number_input("MPPT Max Current (A)", key="pcs_mppt_current",
+                                           value=14.0, format="%.1f")
+elif selected == "Modules":
+    st.header("📥 Manage Solar Modules")
+    init_db()
+    mods = load_modules()
+
+    # — Add / Edit form —
+    with st.expander("➕ Add New Module", expanded=False):
+        mfr = st.text_input("メーカー名", key="mod_mfr_new")
+        no  = st.text_input("型番",       key="mod_no_new")
+        c1, c2 = st.columns(2, gap="small")
+        pmax = c1.number_input("STC Pmax (W)", key="mod_pmax_new")
+        voc  = c2.number_input("STC Voc (V)",  key="mod_voc_new")
+        c3, c4 = st.columns(2, gap="small")
+        vmpp = c3.number_input("NOC Vmpp (V)", key="mod_vmpp_new")
+        isc  = c4.number_input("NOC Isc (A)",  key="mod_isc_new")
+        tc   = st.number_input("温度係数(%/°C)", key="mod_tc_new", value=-0.3)
+        if st.button("Save Module"):
+            save_module(mfr,no,pmax,voc,vmpp,isc,tc)
+            st.success("Saved!")
+
+    # — Interactive table with AgGrid —
+    if mods:
+        st.subheader("■ モジュールリスト")
+        df = pd.DataFrame([
+            {
+                "メーカー名": m["manufacturer"],
+                "型番":       mn,
+                "Pmax(W)":    m["pmax_stc"],
+                "Voc(V)":     m["voc_stc"],
+                "Vmpp(V)":    m["vmpp_noc"],
+                "Isc(A)":     m["isc_noc"],
+                "TempCoeff":  m["temp_coeff"],
+            }
+            for mn,m in mods.items()
+        ])
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_selection(selection_mode="single", use_checkbox=True)
+        grid_opts = gb.build()
+        grid_response = AgGrid(
+            df,
+            gridOptions=grid_opts,
+            data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+            update_mode="MODEL_CHANGED",
+            height=300,
+            fit_columns_on_grid_load=True,
+        )
+        sel = grid_response["selected_rows"]
+        if sel:
+            chosen = sel[0]["型番"]
+            c1, c2 = st.columns(2)
+            if c1.button("✏️ Edit"):
+                st.session_state.edit_module = chosen
+                rerun()
+            if c2.button("🗑️ Delete"):
+                delete_module(chosen)
+                st.success("Deleted!")
+                rerun()
+elif selected == "Calculation":
+    st.header("🔢 Series & Parallel Calculation")
+    mods = load_modules()
+    if not mods:
+        st.warning("Add some modules first.")
+    else:
+        # — select module & temps —
+        choice = st.selectbox("Module", list(mods.keys()))
+        m = mods[choice]
+        t1, t2 = st.columns(2, gap="small")
+        t_min = t1.number_input("Lowest Temp (℃)", key="calc_tmin", value=-5)
+        t_max = t2.number_input("Highest Temp (℃)", key="calc_tmax", value=45)
+
+        # — compute series & present as metrics —
+        # [ your existing series+parallel logic here ]
+        # say you get max_s, min_s, total_modules, total_power
+
+        st.markdown("""<div class="metric-card">""", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3, gap="small")
+        c1.metric("Min Series", f"{min_s}")
+        c2.metric("Max Series", f"{max_s}")
+        c3.metric("Total Modules", f"{total_modules}")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.metric("Total PV Output", f"{total_power/1000:.2f} kW")
+
 # --- Main App ---
 st.sidebar.button("Logout", on_click=logout)
 st.title("🔋 回路構成可否判定シート")

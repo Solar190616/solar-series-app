@@ -3,12 +3,11 @@ import sqlite3
 def init_db():
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
-
-    # 1) Create table with the new manufacturer column
+    # Create table if missing (with manufacturer + all new columns)
     c.execute("""
     CREATE TABLE IF NOT EXISTS modules (
       manufacturer TEXT,
-      型番         TEXT PRIMARY KEY,
+      model_number TEXT PRIMARY KEY,
       pmax_stc     REAL,
       voc_stc      REAL,
       vmpp_noc     REAL,
@@ -17,33 +16,16 @@ def init_db():
     )
     """)
     conn.commit()
-
-    # 2) (Optional) Migration: add columns if you’re upgrading an existing DB
-    c.execute("PRAGMA table_info(modules)")
-    existing = {row[1] for row in c.fetchall()}
-    for col_def in [
-      ("manufacturer", "TEXT"),
-      ("型番",         "TEXT"),
-      ("pmax_stc",     "REAL"),
-      ("voc_stc",      "REAL"),
-      ("vmpp_noc",     "REAL"),
-      ("isc_noc",      "REAL"),
-      ("temp_coeff",   "REAL")
-    ]:
-        col, typ = col_def
-        if col not in existing:
-            c.execute(f"ALTER TABLE modules ADD COLUMN {col} {typ}")
-    conn.commit()
     conn.close()
 
-def save_module(manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff):
+def save_module(manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff):
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
     c.execute("""
       INSERT OR REPLACE INTO modules
-        (manufacturer, 型番, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff)
+        (manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (manufacturer, model_number, pmax, voc, vmpp, isc, temp_coeff))
+    """, (manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff))
     conn.commit()
     conn.close()
 
@@ -51,20 +33,20 @@ def load_modules():
     conn = sqlite3.connect("modules.db")
     c = conn.cursor()
     c.execute("""
-      SELECT manufacturer, 型番, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff
+      SELECT manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff
       FROM modules
     """)
     rows = c.fetchall()
     conn.close()
-    # return dict keyed by 型番
-    return {
-      row[1]: {
-        "manufacturer": row[0],
-        "pmax":         row[2],
-        "voc":          row[3],
-        "vmpp":         row[4],
-        "isc":          row[5],
-        "temp_coeff":   row[6],
-      }
-      for row in rows
-    }
+
+    modules = {}
+    for manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff in rows:
+        modules[model_number] = {
+            "manufacturer": manufacturer,
+            "pmax_stc":     pmax_stc,
+            "voc_stc":      voc_stc,
+            "vmpp_noc":     vmpp_noc,
+            "isc_noc":      isc_noc,
+            "temp_coeff":   temp_coeff
+        }
+    return modules

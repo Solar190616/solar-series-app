@@ -93,8 +93,7 @@ with cols[0]:
     if st.button("🔓 Logout", key="btn_logout"):
         st.session_state.authenticated = False
         rerun()
-with cols[1]:
-   
+
 # ─── TOP BAR MENU AS STEPS ───
 # (call this at top‐level, right after your Logout button)
 page = st.session_state.get("menu", "PCS Settings")

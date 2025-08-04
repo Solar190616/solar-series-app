@@ -112,7 +112,9 @@ with col1:
         ("PCS Settings",   "PCS入力"),
         ("Modules",        "モジュール入力"),
         ("Circuit Config", "回路構成"),
-    ]:
+    ], start=1):
+        # pick the Unicode circled number3⃣
+        circled = ["", "1⃣", "2⃣", "3⃣"][idx]
         active = "active" if page == key else ""
         html += f'''
           <div class="step {active}" onclick="window.location.search='?menu={key}'">

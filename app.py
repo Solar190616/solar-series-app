@@ -20,11 +20,10 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      /* Remove the entire Streamlit header bar (hamburger, fork, share, etc.) */
-      header { display: none !important; }
-      /* Tighten up main/content padding and gaps */
-      .css-1d391kg { padding: 1rem !important; }
-      .css-1lcbmhc { gap: 0.5rem !important; }
+      /* hide ONLY the GitHub repo/fork icon in the header */
+      header a[href*="github.com"] {
+        display: none !important;
+      }
     </style>
     """,
     unsafe_allow_html=True,

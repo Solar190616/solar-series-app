@@ -9,6 +9,29 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+# Tell the browser about our manifest
+st.markdown(
+    '<link rel="manifest" href="/manifest.json">',
+    unsafe_allow_html=True
+)
+
+# Register our service worker
+st.markdown(
+    """
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.error('SW registration failed:', err));
+        });
+      }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
 # ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
 <style>

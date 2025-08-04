@@ -33,18 +33,6 @@ st.markdown(
 # 3) Safe rerun helper (so you can still programmatically rerun)
 rerun = getattr(st, "experimental_rerun", lambda: None)
 
-st.markdown(
-    """
-    <style>
-      /* hide ONLY the GitHub repo/fork icon in the header */
-      header a[href*="github.com"] {
-        display: none !important;
-      }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
 <style>
@@ -56,6 +44,18 @@ st.markdown("""
 
 rerun = getattr(st, "experimental_rerun", lambda: None)
 st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
+
+st.markdown(
+    """
+    <style>
+      /* hide ONLY the GitHub repo/fork icon in the header */
+      header a[href*="github.com"] {
+        display: none !important;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ─── INIT DATABASE ───
 init_db()

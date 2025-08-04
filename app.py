@@ -121,12 +121,12 @@ page = st.sidebar.radio(
     key="menu_radio"
 )
 
-# ─── PAGE 1: PCS Settings (CRUD) ───
+# ─── PAGE 1: PCS Settings (CRUD + responsive table) ───
 if page == "PCS Settings":
     st.header("⚙️ Add / Manage PCS / Inverter Specs")
     pcs_list = load_pcs()
 
-    # Add new PCS
+    # ➕ Add New PCS
     with st.expander("➕ Add New PCS", expanded=False):
         name  = st.text_input("PCS Name", key="new_pcs_name")
         c1, c2 = st.columns(2, gap="small")
@@ -143,44 +143,51 @@ if page == "PCS Settings":
                 st.success(f"✅ Saved PCS '{name}'")
                 rerun()
 
-    # List existing PCS
-    pcs_list = load_pcs()
+    # ■ Saved PCS / Inverters
     if pcs_list:
-    st.subheader("■ Saved PCS / Inverters")
-    # build a DataFrame
-    df_pcs = pd.DataFrame.from_dict(pcs_list, orient="index") \
-               .reset_index() \
-               .rename(columns={
-                 "index":"Name",
-                 "max_voltage":"Max V (V)",
-                 "mppt_min_voltage":"Min V (V)",
-                 "mppt_count":"# MPPT",
-                 "mppt_max_current":"Max I (A)"
-               })
-    # show a scrollable, responsive table
-    st.dataframe(df_pcs, use_container_width=True)
+        st.subheader("■ Saved PCS / Inverters")
 
-    # below the table, let user pick one to Edit/Delete
-    choice = st.selectbox("Select a PCS to edit or delete", df_pcs["Name"].tolist(), key="pcs_choice_mobile")
-    col1, col2 = st.columns(2, gap="small")
-    if col1.button("✏️ Edit", key="pcs_edit_btn"):
-        st.session_state["edit_pcs"] = choice
-        rerun()
-    if col2.button("🗑️ Delete", key="pcs_del_btn"):
-        delete_pcs(choice)
-        st.success(f"Deleted {choice}")
-        rerun()
+        # Build a DataFrame for responsive display
+        df_pcs = (
+            pd.DataFrame.from_dict(pcs_list, orient="index")
+              .reset_index()
+              .rename(columns={
+                  "index":           "Name",
+                  "max_voltage":     "Max V (V)",
+                  "mppt_min_voltage":"Min V (V)",
+                  "mppt_count":      "# MPPT",
+                  "mppt_max_current":"Max I (A)"
+              })
+        )
 
-    # Edit a PCS
+        # Display as a horizontally scrollable table
+        st.dataframe(df_pcs, use_container_width=True)
+
+        # Inline Edit/Delete controls
+        choice = st.selectbox(
+            "Select a PCS to Edit/Delete",
+            df_pcs["Name"].tolist(),
+            key="pcs_choice_mobile"
+        )
+        col1, col2 = st.columns(2, gap="small")
+        if col1.button("✏️ Edit", key="pcs_edit_btn"):
+            st.session_state["edit_pcs"] = choice
+            rerun()
+        if col2.button("🗑️ Delete", key="pcs_del_btn"):
+            delete_pcs(choice)
+            st.success(f"🗑️ Deleted '{choice}'")
+            rerun()
+
+    # ✏️ Edit existing PCS
     if "edit_pcs" in st.session_state:
         nm = st.session_state.pop("edit_pcs")
         p  = pcs_list[nm]
         st.subheader(f"✏️ Edit PCS: {nm}")
         new_name = st.text_input("PCS Name", value=nm, key="edit_pcs_name")
-        max_v    = st.number_input("Max Voltage (V)", value=p["max_voltage"],   key="edit_pcs_max")
-        min_v    = st.number_input("MPPT Min Voltage (V)", value=p["mppt_min_voltage"], key="edit_pcs_min")
-        count    = st.number_input("MPPT Inputs", value=p["mppt_count"],   key="edit_pcs_count", min_value=1, step=1)
-        max_i    = st.number_input("MPPT Max Current (A)", value=p["mppt_max_current"], key="edit_pcs_cur")
+        max_v    = st.number_input("Max Voltage (V)",       value=p["max_voltage"],    key="edit_pcs_max")
+        min_v    = st.number_input("MPPT Min Voltage (V)",  value=p["mppt_min_voltage"],key="edit_pcs_min")
+        count    = st.number_input("MPPT Inputs",           value=p["mppt_count"],     key="edit_pcs_count", min_value=1, step=1)
+        max_i    = st.number_input("MPPT Max Current (A)",  value=p["mppt_max_current"],key="edit_pcs_cur")
         if st.button("Save Changes", key="btn_save_pcs_edit"):
             save_pcs(new_name, max_v, min_v, int(count), max_i)
             st.success(f"✅ Updated PCS '{new_name}'")

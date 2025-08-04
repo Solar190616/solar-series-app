@@ -9,27 +9,6 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
-# ─── PAGE CONFIG MUST BE FIRST ───
-st.set_page_config(
-    page_title="回路構成可否判定シート",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# ─── GLOBAL CSS ───
-st.markdown("""
-  <style>
-    /* hide the Streamlit toolbar icons */
-    header > div:nth-child(2) { display: none !important; }
-    /* tighten up gaps */
-    .css-1d391kg { padding: 1rem !important; }
-    .css-1lcbmhc { gap: 0.5rem !important; }
-  </style>
-""", unsafe_allow_html=True)
-
-# ─── Safe rerun helper ───
-rerun = getattr(st, "experimental_rerun", lambda: None)
-
 # Tell the browser about our manifest
 st.markdown(
     '<link rel="manifest" href="/manifest.json">',
@@ -55,15 +34,27 @@ st.markdown(
 
 # ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
-  <style>
-    header > div:nth-child(2) { display: none !important; }
-    .css-1d391kg { padding: 1rem !important; }
-    .css-1lcbmhc { gap: 0.5rem !important; }
-  </style>
+<style>
+  header > div:nth-child(2) { display: none !important; }
+  .css-1d391kg { padding: 1rem !important; }
+  .css-1lcbmhc { gap: 0.5rem !important; }
+</style>
 """, unsafe_allow_html=True)
 
 rerun = getattr(st, "experimental_rerun", lambda: None)
 st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
+
+st.markdown(
+    """
+    <style>
+      /* hide ONLY the GitHub repo/fork icon in the header */
+      header a[href*="github.com"] {
+        display: none !important;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ─── INIT DATABASE ───
 init_db()
@@ -87,7 +78,7 @@ if not st.session_state.authenticated:
 
     st.markdown("---")
 
-    # — Sign Up expander (4 spaces indent under the if-block) —
+    # — Sign Up —
     with st.expander("📝 Sign Up", expanded=False):
         su = st.text_input("New Username", key="sign_usr")
         sp = st.text_input("New Password", type="password", key="sign_pwd")
@@ -102,7 +93,7 @@ if not st.session_state.authenticated:
             else:
                 st.error(f"Username '{su}' already exists")
 
-    # — Reset Password expander (same indent level) —
+    # — Reset Password —
     with st.expander("🔄 Reset Password", expanded=False):
         ru  = st.text_input("Username", key="rst_usr")
         old = st.text_input("Old Password", type="password", key="rst_old")
@@ -117,9 +108,18 @@ if not st.session_state.authenticated:
                 update_password(ru, new)
                 st.success("✅ Password updated! Please log in.")
 
-    # prevent access to the rest of the app until logged in
     st.stop()
 
+# ─── SIDEBAR & LOGOUT ───
+if st.sidebar.button("🔓 Logout"):
+    st.session_state.authenticated = False
+    rerun()
+
+page = st.sidebar.radio(
+    "☰ Menu",
+    ["PCS Settings", "Modules", "Circuit Config"],
+    key="menu_radio"
+)
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":

@@ -69,7 +69,6 @@ st.set_page_config(page_title="回路構成可否判定シート", layout="wide"
 init_db()
 
 # ─── AUTHENTICATION ───
-# ─── AUTHENTICATION ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -88,27 +87,7 @@ if not st.session_state.authenticated:
 
     st.markdown("---")
 
-    # ─── TOP BAR: LOGOUT + HORIZONTAL MENU ───
-cols = st.columns([1, 4], gap="small")
-with cols[0]:
-    if st.button("🔓 Logout", key="logout_top"):
-        st.session_state.authenticated = False
-        rerun()
-with cols[1]:
-    page = st.radio(
-        "",  # no label, since the radio itself is your menu
-        ["PCS Settings", "Modules", "Circuit Config"],
-        index=["PCS Settings", "Modules", "Circuit Config"].index(
-            st.session_state.get("menu", "PCS Settings")
-        ),
-        horizontal=True,
-        key="menu"
-    )
-    # remember selection across reruns
-    st.session_state["menu"] = page
-st.markdown("---")
-
-    # — Sign Up —
+    # — Sign Up expander (4 spaces indent under the if-block) —
     with st.expander("📝 Sign Up", expanded=False):
         su = st.text_input("New Username", key="sign_usr")
         sp = st.text_input("New Password", type="password", key="sign_pwd")
@@ -123,7 +102,7 @@ st.markdown("---")
             else:
                 st.error(f"Username '{su}' already exists")
 
-    # — Reset Password —
+    # — Reset Password expander (same indent level) —
     with st.expander("🔄 Reset Password", expanded=False):
         ru  = st.text_input("Username", key="rst_usr")
         old = st.text_input("Old Password", type="password", key="rst_old")
@@ -138,7 +117,9 @@ st.markdown("---")
                 update_password(ru, new)
                 st.success("✅ Password updated! Please log in.")
 
+    # prevent access to the rest of the app until logged in
     st.stop()
+
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":

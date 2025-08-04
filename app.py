@@ -38,6 +38,63 @@ st.markdown("""
   header > div:nth-child(2) { display: none !important; }
   .css-1d391kg { padding: 1rem !important; }
   .css-1lcbmhc { gap: 0.5rem !important; }
+  
+  /* Custom styling for menu tabs */
+  .stButton > button {
+    width: 100%;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 12px 16px;
+    margin: 4px 0;
+    transition: all 0.2s ease;
+  }
+  
+  /* Primary button styling (selected tab) */
+  .stButton > button[data-baseweb="button"][aria-pressed="true"],
+  .stButton > button[data-baseweb="button"].primary {
+    background-color: #1f77b4 !important;
+    color: white !important;
+    border: 2px solid #1f77b4 !important;
+  }
+  
+  /* Secondary button styling (unselected tab) */
+  .stButton > button[data-baseweb="button"] {
+    background-color: #f0f2f6 !important;
+    color: #262730 !important;
+    border: 2px solid #e0e0e0 !important;
+  }
+  
+  /* Hover effects */
+  .stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Force button state updates */
+  .stButton > button[data-baseweb="button"][aria-pressed="true"] {
+    background-color: #1f77b4 !important;
+    color: white !important;
+    border-color: #1f77b4 !important;
+  }
+  
+  /* Ensure proper button styling for all states */
+  .stButton > button[data-baseweb="button"]:not([aria-pressed="true"]) {
+    background-color: #f0f2f6 !important;
+    color: #262730 !important;
+    border-color: #e0e0e0 !important;
+  }
+  
+  /* Logout button styling */
+  .stButton > button[key="logout_btn"] {
+    background-color: #ff4b4b;
+    color: white;
+    border: 2px solid #ff4b4b;
+  }
+  
+  .stButton > button[key="logout_btn"]:hover {
+    background-color: #e63939;
+    border-color: #e63939;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -110,16 +167,348 @@ if not st.session_state.authenticated:
 
     st.stop()
 
-# ─── SIDEBAR & LOGOUT ───
-if st.sidebar.button("🔓 Logout"):
-    st.session_state.authenticated = False
-    rerun()
+# ─── HEADER WITH LOGOUT & MENU ───
+# Create a header with logout button and menu tabs
+col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
 
-page = st.sidebar.radio(
-    "☰ Menu",
-    ["PCS Settings", "Modules", "Circuit Config"],
-    key="menu_radio"
-)
+# Logout button in the rightmost column
+with col5:
+    if st.button("🔓 Logout", key="logout_btn"):
+        st.session_state.show_logout_confirm = True
+        rerun()
+
+# Logout confirmation dialog
+if st.session_state.get("show_logout_confirm", False):
+    # Add overlay and dialog with buttons inside
+    st.markdown("""
+    <style>
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    .dialog-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        border: 2px solid #ff4b4b;
+        z-index: 1000;
+        min-width: 300px;
+        text-align: center;
+    }
+    .dialog-buttons {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    .dialog-button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        min-width: 80px;
+    }
+    .btn-yes {
+        background-color: #28a745;
+        color: white;
+    }
+    .btn-cancel {
+        background-color: #dc3545;
+        color: white;
+    }
+    </style>
+    <div class="overlay"></div>
+    <div class="dialog-container">
+        <h3>🔓 Logout Confirmation</h3>
+        <p>Are you sure you want to logout?</p>
+        <div class="dialog-buttons">
+                         <button class="dialog-button btn-yes" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'confirm_logout_clicked'}, '*')">✅ Yes, Logout</button>
+             <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'cancel_logout_clicked'}, '*')">❌ Cancel</button>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Hidden buttons to capture JavaScript clicks
+    if st.button("", key="confirm_logout_clicked"):
+        st.session_state.authenticated = False
+        st.session_state.pop("show_logout_confirm", None)
+        rerun()
+    
+    if st.button("", key="cancel_logout_clicked"):
+        st.session_state.pop("show_logout_confirm", None)
+        rerun()
+
+# Menu tabs in the first 4 columns
+with col1:
+    pcs_selected = st.button("①PCS入力", key="menu_pcs", type="primary" if st.session_state.get("menu_page", "PCS Settings") == "PCS Settings" else "secondary")
+    if pcs_selected:
+        st.session_state.menu_page = "PCS Settings"
+        rerun()
+
+with col2:
+    modules_selected = st.button("②モジュール入力", key="menu_modules", type="primary" if st.session_state.get("menu_page") == "Modules" else "secondary")
+    if modules_selected:
+        st.session_state.menu_page = "Modules"
+        rerun()
+
+with col3:
+    circuit_selected = st.button("③回路構成", key="menu_circuit", type="primary" if st.session_state.get("menu_page") == "Circuit Config" else "secondary")
+    if circuit_selected:
+        st.session_state.menu_page = "Circuit Config"
+        rerun()
+
+# Set default page if not set
+if "menu_page" not in st.session_state:
+    st.session_state.menu_page = "PCS Settings"
+
+page = st.session_state.menu_page
+
+# ─── GLOBAL DIALOG FUNCTIONS ───
+def show_delete_confirmation():
+    if st.session_state.get("show_delete_confirm", False):
+        target = st.session_state.get("delete_target", "")
+        delete_type = st.session_state.get("delete_type", "")
+        
+        # Add overlay and dialog with buttons inside
+        st.markdown(f"""
+        <style>
+        .overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }}
+        .dialog-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 2px solid #ff4b4b;
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }}
+        .dialog-buttons {{
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }}
+        .dialog-button {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 80px;
+        }}
+        .btn-yes {{
+            background-color: #28a745;
+            color: white;
+        }}
+        .btn-cancel {{
+            background-color: #dc3545;
+            color: white;
+        }}
+        </style>
+        <div class="overlay"></div>
+        <div class="dialog-container">
+            <h3>🗑️ Delete Confirmation</h3>
+            <p>Are you sure you want to delete "{target}"?</p>
+            <p><small>This action cannot be undone.</small></p>
+            <div class="dialog-buttons">
+                                 <button class="dialog-button btn-yes" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'confirm_delete_clicked'}}, '*')">✅ Yes, Delete</button>
+                 <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'cancel_delete_clicked'}}, '*')">❌ Cancel</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hidden buttons to capture JavaScript clicks
+        if st.button("", key="confirm_delete_clicked"):
+            if delete_type == "pcs":
+                delete_pcs(target)
+            elif delete_type == "module":
+                delete_module(target)
+            st.session_state.pop("show_delete_confirm", None)
+            st.session_state.pop("delete_target", None)
+            st.session_state.pop("delete_type", None)
+            st.session_state.show_success_dialog = True
+            st.session_state.success_message = f"Deleted → {target}"
+            rerun()
+        
+        if st.button("", key="cancel_delete_clicked"):
+            st.session_state.pop("show_delete_confirm", None)
+            st.session_state.pop("delete_target", None)
+            st.session_state.pop("delete_type", None)
+            rerun()
+
+def show_success_dialog():
+    if st.session_state.get("show_success_dialog", False):
+        message = st.session_state.get("success_message", "Operation completed successfully!")
+        
+        # Add overlay and dialog with button inside
+        st.markdown(f"""
+        <style>
+        .overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }}
+        .dialog-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 2px solid #00ff00;
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }}
+        .dialog-buttons {{
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+        }}
+        .dialog-button {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 80px;
+            background-color: #28a745;
+            color: white;
+        }}
+        </style>
+        <div class="overlay"></div>
+        <div class="dialog-container">
+            <h3>✅ Success</h3>
+            <p>{message}</p>
+            <div class="dialog-buttons">
+                                 <button class="dialog-button" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'ok_success_clicked'}}, '*')">✅ OK</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hidden button to capture JavaScript clicks
+        if st.button("", key="ok_success_clicked"):
+            st.session_state.pop("show_success_dialog", None)
+            st.session_state.pop("success_message", None)
+            rerun()
+
+def show_edit_confirmation():
+    if st.session_state.get("show_edit_confirm", False):
+        target = st.session_state.get("edit_target", "")
+        edit_type = st.session_state.get("edit_type", "")
+        
+        # Add overlay and dialog with buttons inside
+        st.markdown(f"""
+        <style>
+        .overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }}
+        .dialog-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 2px solid #1f77b4;
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }}
+        .dialog-buttons {{
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }}
+        .dialog-button {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 80px;
+        }}
+        .btn-yes {{
+            background-color: #1f77b4;
+            color: white;
+        }}
+        .btn-cancel {{
+            background-color: #dc3545;
+            color: white;
+        }}
+        </style>
+        <div class="overlay"></div>
+        <div class="dialog-container">
+            <h3>✏️ Edit Confirmation</h3>
+            <p>Do you want to edit "{target}"?</p>
+            <p><small>You will be able to modify all fields.</small></p>
+            <div class="dialog-buttons">
+                                 <button class="dialog-button btn-yes" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'confirm_edit_clicked'}}, '*')">✅ Yes, Edit</button>
+                 <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'cancel_edit_clicked'}}, '*')">❌ No, Cancel</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hidden buttons to capture JavaScript clicks
+        if st.button("", key="confirm_edit_clicked"):
+            if edit_type == "pcs":
+                st.session_state["edit_pcs"] = target
+            elif edit_type == "module":
+                st.session_state["edit_mod"] = target
+            st.session_state.pop("show_edit_confirm", None)
+            st.session_state.pop("edit_target", None)
+            st.session_state.pop("edit_type", None)
+            rerun()
+        
+        if st.button("", key="cancel_edit_clicked"):
+            st.session_state.pop("show_edit_confirm", None)
+            st.session_state.pop("edit_target", None)
+            st.session_state.pop("edit_type", None)
+            rerun()
+
+# Show dialogs if needed
+show_delete_confirmation()
+show_edit_confirmation()
+show_success_dialog()
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":
@@ -139,7 +528,8 @@ if page == "PCS Settings":
                 st.error("Name required")
             else:
                 save_pcs(name, max_v, min_v, int(count), max_i)
-                st.success(f"Saved → {name}")
+                st.session_state.show_success_dialog = True
+                st.session_state.success_message = f"Saved → {name}"
                 rerun()
 
     # — Responsive PCS Table —
@@ -166,16 +556,22 @@ if page == "PCS Settings":
         )
         e1,e2 = st.columns(2, gap="small")
         if e1.button("✏️ Edit", key="pcs_edit_btn"):
-            st.session_state["edit_pcs"] = choice
+            st.session_state.show_edit_confirm = True
+            st.session_state.edit_target = choice
+            st.session_state.edit_type = "pcs"
             rerun()
         if e2.button("🗑️ Delete", key="pcs_del_btn"):
-            delete_pcs(choice)
-            st.success(f"Deleted → {choice}")
-            rerun()
+            if st.session_state.get("edit_pcs") == choice:
+                st.error("Cannot delete while editing. Please save or cancel the edit first.")
+            else:
+                st.session_state.show_delete_confirm = True
+                st.session_state.delete_target = choice
+                st.session_state.delete_type = "pcs"
+                rerun()
 
     # — Edit PCS Form —
     if "edit_pcs" in st.session_state:
-        nm = st.session_state.pop("edit_pcs")
+        nm = st.session_state["edit_pcs"]
         p  = pcs_list[nm]
         st.subheader(f"✏️ Edit PCS: {nm}")
         new_name = st.text_input("PCS Name", value=nm, key="edit_pcs_name")
@@ -183,10 +579,26 @@ if page == "PCS Settings":
         min_v    = st.number_input("MPPT Min Voltage (V)",  value=p["mppt_min_voltage"], key="edit_pcs_min")
         count    = st.number_input("MPPT Inputs",           value=p["mppt_count"], key="edit_pcs_count", min_value=1, step=1)
         max_i    = st.number_input("MPPT Max Current (A)",  value=p["mppt_max_current"], key="edit_pcs_cur")
-        if st.button("Save Changes", key="btn_save_pcs_edit"):
-            save_pcs(new_name, max_v, min_v, int(count), max_i)
-            st.success(f"Updated → {new_name}")
-            rerun()
+        
+        col1, col2 = st.columns(2, gap="small")
+        with col1:
+            if st.button("Save Changes", key="btn_save_pcs_edit"):
+                if not new_name.strip():
+                    st.error("Name required")
+                else:
+                    # Delete old entry if name changed
+                    if new_name != nm:
+                        delete_pcs(nm)
+                    # Save new entry
+                    save_pcs(new_name, max_v, min_v, int(count), max_i)
+                    st.session_state.show_success_dialog = True
+                    st.session_state.success_message = f"Updated → {new_name}"
+                    st.session_state.pop("edit_pcs", None)
+                    rerun()
+        with col2:
+            if st.button("Cancel", key="btn_cancel_pcs_edit"):
+                st.session_state.pop("edit_pcs", None)
+                rerun()
 
 # ─── PAGE 2: Modules ───
 elif page == "Modules":
@@ -209,7 +621,8 @@ elif page == "Modules":
                 st.error("メーカー名と型番は必須です。")
             else:
                 save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
-                st.success(f"Saved → {model_no}")
+                st.session_state.show_success_dialog = True
+                st.session_state.success_message = f"Saved → {model_no}"
                 rerun()
 
     # — Responsive Module Table —
@@ -234,28 +647,51 @@ elif page == "Modules":
                               df_mod["Model No."], key="mod_choice")
         m1,m2 = st.columns(2, gap="small")
         if m1.button("✏️ Edit", key="mod_edit_btn"):
-            st.session_state["edit_mod"] = choice
+            st.session_state.show_edit_confirm = True
+            st.session_state.edit_target = choice
+            st.session_state.edit_type = "module"
             rerun()
         if m2.button("🗑️ Delete", key="mod_del_btn"):
-            delete_module(choice)
-            st.success(f"Deleted → {choice}")
-            rerun()
+            if st.session_state.get("edit_mod") == choice:
+                st.error("Cannot delete while editing. Please save or cancel the edit first.")
+            else:
+                st.session_state.show_delete_confirm = True
+                st.session_state.delete_target = choice
+                st.session_state.delete_type = "module"
+                rerun()
 
     # — Edit Module Form —
     if "edit_mod" in st.session_state:
-        mn = st.session_state.pop("edit_mod")
+        mn = st.session_state["edit_mod"]
         d  = mods[mn]
         st.subheader(f"✏️ Edit Module: {mn}")
         mf = st.text_input("メーカー名", value=d["manufacturer"], key="edit_mod_mfr")
+        new_model_no = st.text_input("型番", value=mn, key="edit_mod_no")
         pm = st.number_input("STC Pmax (W)",      value=d["pmax_stc"], key="edit_mod_pmax")
         vc = st.number_input("STC Voc (V)",       value=d["voc_stc"],  key="edit_mod_voc")
         vm = st.number_input("NOC Vmpp (V)",      value=d["vmpp_noc"], key="edit_mod_vmpp")
         ic = st.number_input("NOC Isc (A)",       value=d["isc_noc"],  key="edit_mod_isc")
         tc = st.number_input("温度係数 (%/℃)",     value=d["temp_coeff"],key="edit_mod_tc")
-        if st.button("Save Changes", key="btn_save_mod_edit"):
-            save_module(mf, mn, pm, vc, vm, ic, tc)
-            st.success(f"Updated → {mn}")
-            rerun()
+        
+        col1, col2 = st.columns(2, gap="small")
+        with col1:
+            if st.button("Save Changes", key="btn_save_mod_edit"):
+                if not mf.strip() or not new_model_no.strip():
+                    st.error("メーカー名と型番は必須です。")
+                else:
+                    # Delete old entry if model number changed
+                    if new_model_no != mn:
+                        delete_module(mn)
+                    # Save new entry
+                    save_module(mf, new_model_no, pm, vc, vm, ic, tc)
+                    st.session_state.show_success_dialog = True
+                    st.session_state.success_message = f"Updated → {new_model_no}"
+                    st.session_state.pop("edit_mod", None)
+                    rerun()
+        with col2:
+            if st.button("Cancel", key="btn_cancel_mod_edit"):
+                st.session_state.pop("edit_mod", None)
+                rerun()
 
 # ─── PAGE 3: Circuit Config ───
 else:
@@ -312,9 +748,9 @@ else:
             c1.write(label)
             key = f"ser_{i}_{j}"
             default = min_s if j==0 else 0
-            s = c2.number_input("", key=key,
-                                 min_value=0, max_value=max_s,
-                                 value=default, step=1)
+            s = c2.number_input("直列枚数", key=key,
+                               min_value=0, max_value=max_s,
+                               value=default, step=1)
             vals.append(s)
 
             if s>0:

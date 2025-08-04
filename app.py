@@ -69,6 +69,7 @@ st.set_page_config(page_title="回路構成可否判定シート", layout="wide"
 init_db()
 
 # ─── AUTHENTICATION ───
+# ─── AUTHENTICATION ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 

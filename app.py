@@ -20,6 +20,22 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+      /* Remove the entire Streamlit header bar (hamburger, fork, share, etc.) */
+      header { display: none !important; }
+      /* Tighten up main/content padding and gaps */
+      .css-1d391kg { padding: 1rem !important; }
+      .css-1lcbmhc { gap: 0.5rem !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# 3) Safe rerun helper (so you can still programmatically rerun)
+rerun = getattr(st, "experimental_rerun", lambda: None)
+
+st.markdown(
+    """
+    <style>
       /* hide ONLY the GitHub repo/fork icon in the header */
       header a[href*="github.com"] {
         display: none !important;
@@ -28,9 +44,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-# 3) Safe rerun helper (so you can still programmatically rerun)
-rerun = getattr(st, "experimental_rerun", lambda: None)
 
 # ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""

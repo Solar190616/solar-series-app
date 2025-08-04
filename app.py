@@ -9,6 +9,27 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+# ─── Modal helper ────────────────────────────────────────────────────────────
+def confirm_action(title, text, on_confirm, on_cancel=None):
+    """Show a Streamlit modal dialog with Confirm/Cancel buttons."""
+    with st.modal(title):
+        st.write(text)
+        c1, c2 = st.columns(2, gap="small")
+        if c1.button("✅ Yes"):
+            on_confirm()
+        if c2.button("❌ Cancel"):
+            if on_cancel: on_cancel()
+
+# ─── Usage example ────────────────────────────────────────────────────────────
+if st.button("🗑️ Delete Something"):
+    # Open the confirmation
+    confirm_action(
+        title="Delete Confirmation",
+        text="Are you sure you want to delete this item?",
+        on_confirm=lambda: st.success("Deleted!"),
+        on_cancel=lambda: st.info("Cancelled.")
+    )
+
 # Tell the browser about our manifest
 st.markdown(
     '<link rel="manifest" href="/manifest.json">',

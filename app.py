@@ -91,43 +91,82 @@ if not st.session_state.authenticated:
 if "menu" not in st.session_state:
     st.session_state["menu"] = "PCS Settings"
 
-# ─── TOP BAR MENU AS STEPS ───
-cols = st.columns([1, 4], gap="small")
+# ─── TOP BAR: Logout + Arrow-Stepper Menu ───
+cols = st.columns([1, 6], gap="small")
 with cols[0]:
-    if st.button("🔓 Logout", key="logout_top"):
+    if st.button("🔓 Logout", key="btn_logout"):
         st.session_state.authenticated = False
         rerun()
-
 with cols[1]:
-    page = st.session_state["menu"]  # now always defined
-    menu_html = f"""
-    <div class="stepper">
-      <div class="step {'active' if page=='PCS Settings' else ''}"
-           onclick="window.location.href='?menu=PCS Settings'">
-        PCS入力
-      </div>
-      <div class="step {'active' if page=='Modules' else ''}"
-           onclick="window.location.href='?menu=Modules'">
-        モジュール入力
-      </div>
-      <div class="step {'active' if page=='Circuit Config' else ''}"
-           onclick="window.location.href='?menu=Circuit Config'">
-        回路構成
-      </div>
-    </div>
-    <style>
-      /* … your CSS … */
-    </style>
-    """
-    st.markdown(menu_html, unsafe_allow_html=True)
+    # read current page
+    page = st.session_state["menu"]
 
-    # read the new value from the query string (or leave as-is)
-    params = st.experimental_get_query_params()
+    # build HTML stepper
+    menu_html = """
+    <div class="stepper-container">
+    """
+    steps = [
+        ("PCS Settings",   "PCS入力"),
+        ("Modules",        "モジュール入力"),
+        ("Circuit Config", "回路構成")
+    ]
+    for key,label in steps:
+        active = "active" if page==key else ""
+        menu_html += f"""
+        <div class="step {active}" onclick="window.location.search='?menu={key}'">
+          {label}
+        </div>
+        """
+    menu_html += "</div>"
+
+    # inject HTML + CSS
+    st.markdown(menu_html + """
+    <style>
+      .stepper-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0.5rem 0 1rem;
+      }
+      .step {
+        position: relative;
+        background: #0284c7;
+        color: white;
+        padding: 0.5rem 1rem;
+        margin-right: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+      }
+      .step:last-child { margin-right: 0; }
+      .step:after {
+        content: "";
+        position: absolute;
+        top: 0; right: -12px;
+        border-top: 1.25rem solid transparent;
+        border-bottom: 1.25rem solid transparent;
+        border-left: 12px solid #0284c7;
+      }
+      .step.active {
+        background: #0ea5e9;
+      }
+      .step.active:after {
+        border-left-color: #0ea5e9;
+      }
+      .step:hover {
+        background: #06b6d4;
+      }
+      .step:hover:after {
+        border-left-color: #06b6d4;
+      }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # capture any click-driven query param
+    params = st.query_params
     if "menu" in params:
         st.session_state["menu"] = params["menu"][0]
     page = st.session_state["menu"]
-
-st.markdown("---")
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":

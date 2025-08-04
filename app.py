@@ -9,6 +9,27 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+# ─── PAGE CONFIG MUST BE FIRST ───
+st.set_page_config(
+    page_title="回路構成可否判定シート",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ─── GLOBAL CSS ───
+st.markdown("""
+  <style>
+    /* hide the Streamlit toolbar icons */
+    header > div:nth-child(2) { display: none !important; }
+    /* tighten up gaps */
+    .css-1d391kg { padding: 1rem !important; }
+    .css-1lcbmhc { gap: 0.5rem !important; }
+  </style>
+""", unsafe_allow_html=True)
+
+# ─── Safe rerun helper ───
+rerun = getattr(st, "experimental_rerun", lambda: None)
+
 # Tell the browser about our manifest
 st.markdown(
     '<link rel="manifest" href="/manifest.json">',
@@ -34,27 +55,15 @@ st.markdown(
 
 # ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
-<style>
-  header > div:nth-child(2) { display: none !important; }
-  .css-1d391kg { padding: 1rem !important; }
-  .css-1lcbmhc { gap: 0.5rem !important; }
-</style>
+  <style>
+    header > div:nth-child(2) { display: none !important; }
+    .css-1d391kg { padding: 1rem !important; }
+    .css-1lcbmhc { gap: 0.5rem !important; }
+  </style>
 """, unsafe_allow_html=True)
 
 rerun = getattr(st, "experimental_rerun", lambda: None)
 st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
-
-st.markdown(
-    """
-    <style>
-      /* hide ONLY the GitHub repo/fork icon in the header */
-      header a[href*="github.com"] {
-        display: none !important;
-      }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # ─── INIT DATABASE ───
 init_db()

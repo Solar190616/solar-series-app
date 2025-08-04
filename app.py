@@ -9,31 +9,54 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
-# ─── Page setup & global CSS ───
-st.set_page_config(
-    page_title="回路構成可否判定シート",
-    layout="wide",
-    initial_sidebar_state="expanded"
+# Tell the browser about our manifest
+st.markdown(
+    '<link rel="manifest" href="/manifest.json">',
+    unsafe_allow_html=True
 )
+
+# Register our service worker
+st.markdown(
+    """
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.error('SW registration failed:', err));
+        });
+      }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+# ─── GLOBAL CSS & PAGE CONFIG ───
+st.markdown("""
+<style>
+  header > div:nth-child(2) { display: none !important; }
+  .css-1d391kg { padding: 1rem !important; }
+  .css-1lcbmhc { gap: 0.5rem !important; }
+</style>
+""", unsafe_allow_html=True)
+
+rerun = getattr(st, "experimental_rerun", lambda: None)
+st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
 
 st.markdown(
     """
     <style>
-      /* Hide EVERYTHING in the top header bar */
-      header { display: none !important; }
-
-      /* Tighten up padding & gaps throughout */
-      .css-1d391kg { padding: 1rem !important; }
-      .css-1lcbmhc { gap: 0.5rem !important; }
+      /* hide ONLY the GitHub repo/fork icon in the header */
+      header a[href*="github.com"] {
+        display: none !important;
+      }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Safe rerun helper (define once)
-rerun = getattr(st, "experimental_rerun", lambda: None)
-
-# Initialize DB (you could @st.cache_resource this)
+# ─── INIT DATABASE ───
 init_db()
 
 # ─── AUTHENTICATION ───

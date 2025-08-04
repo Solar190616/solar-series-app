@@ -94,18 +94,75 @@ with cols[0]:
         st.session_state.authenticated = False
         rerun()
 with cols[1]:
-    page = st.radio(
-        "", 
-        ["PCS Settings", "Modules", "Circuit Config"],
-        index=["PCS Settings", "Modules", "Circuit Config"].index(
-            st.session_state.get("menu", "PCS Settings")
-        ),
-        horizontal=True,
-        key="menu"
-    )
-          
-st.markdown("---")
+   
+# ─── TOP BAR MENU AS STEPS ───
+# (call this at top‐level, right after your Logout button)
+page = st.session_state.get("menu", "PCS Settings")
 
+menu_html = f"""
+<div class="stepper">
+  <div class="step {'active' if page=='PCS Settings' else ''}" onclick="window.location.href='?menu=PCS Settings'">
+    PCS入力
+  </div>
+  <div class="step {'active' if page=='Modules' else ''}" onclick="window.location.href='?menu=Modules'">
+    モジュール入力
+  </div>
+  <div class="step {'active' if page=='Circuit Config' else ''}" onclick="window.location.href='?menu=Circuit Config'">
+    回路構成
+  </div>
+</div>
+<style>
+.stepper {{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+}}
+.step {{
+  position: relative;
+  padding: 0.5rem 1rem;
+  background-color: #005f99;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}}
+.step + .step {{
+  margin-left: 8px;
+}}
+.step:after {{
+  content: '';
+  position: absolute;
+  top: 0; right: -15px;
+  border-top: 25px solid transparent;
+  border-bottom: 25px solid transparent;
+  border-left: 15px solid #005f99;
+}}
+.step:last-child:after {{
+  display: none;
+}}
+.step.active {{
+  background-color: #0088cc;
+}}
+.step.active:after {{
+  border-left-color: #0088cc;
+}}
+.step:hover {{
+  background-color: #0077b3;
+}}
+.step:hover:after {{
+  border-left-color: #0077b3;
+}}
+</style>
+"""
+st.markdown(menu_html, unsafe_allow_html=True)
+
+# Now read the query‐param (if present) and store it back into session_state
+# so the rest of your code can still do `if page == "Modules": …`
+params = st.experimental_get_query_params()
+if "menu" in params:
+    st.session_state["menu"] = params["menu"][0]
+page = st.session_state["menu"]
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":

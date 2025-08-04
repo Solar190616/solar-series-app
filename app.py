@@ -87,6 +87,26 @@ if not st.session_state.authenticated:
 
     st.markdown("---")
 
+    # ─── TOP BAR: LOGOUT + HORIZONTAL MENU ───
+cols = st.columns([1, 4], gap="small")
+with cols[0]:
+    if st.button("🔓 Logout", key="logout_top"):
+        st.session_state.authenticated = False
+        rerun()
+with cols[1]:
+    page = st.radio(
+        "",  # no label, since the radio itself is your menu
+        ["PCS Settings", "Modules", "Circuit Config"],
+        index=["PCS Settings", "Modules", "Circuit Config"].index(
+            st.session_state.get("menu", "PCS Settings")
+        ),
+        horizontal=True,
+        key="menu"
+    )
+    # remember selection across reruns
+    st.session_state["menu"] = page
+st.markdown("---")
+
     # — Sign Up —
     with st.expander("📝 Sign Up", expanded=False):
         su = st.text_input("New Username", key="sign_usr")
@@ -118,17 +138,6 @@ if not st.session_state.authenticated:
                 st.success("✅ Password updated! Please log in.")
 
     st.stop()
-
-# ─── SIDEBAR & LOGOUT ───
-if st.sidebar.button("🔓 Logout"):
-    st.session_state.authenticated = False
-    rerun()
-
-page = st.sidebar.radio(
-    "☰ Menu",
-    ["PCS Settings", "Modules", "Circuit Config"],
-    key="menu_radio"
-)
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":

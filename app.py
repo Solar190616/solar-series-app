@@ -9,6 +9,30 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+# 1) Make the sidebar permanently visible
+st.set_page_config(
+    page_title="回路構成可否判定シート", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
+
+# 2) Inject CSS to hide the entire header (which contains all those icons)
+st.markdown(
+    """
+    <style>
+      /* Remove the entire Streamlit header bar (hamburger, fork, share, etc.) */
+      header { display: none !important; }
+      /* Tighten up main/content padding and gaps */
+      .css-1d391kg { padding: 1rem !important; }
+      .css-1lcbmhc { gap: 0.5rem !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# 3) Safe rerun helper (so you can still programmatically rerun)
+rerun = getattr(st, "experimental_rerun", lambda: None)
+
 # ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
 <style>

@@ -178,76 +178,19 @@ with col5:
         rerun()
 
 # Logout confirmation dialog
-if st.session_state.get("show_logout_confirm", False):
-    # Add overlay and dialog with buttons inside
-    st.markdown("""
-    <style>
-    .overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 999;
-    }
-    .dialog-container {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        border: 2px solid #ff4b4b;
-        z-index: 1000;
-        min-width: 300px;
-        text-align: center;
-    }
-    .dialog-buttons {
-        margin-top: 15px;
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    .dialog-button {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        min-width: 80px;
-    }
-    .btn-yes {
-        background-color: #28a745;
-        color: white;
-    }
-    .btn-cancel {
-        background-color: #dc3545;
-        color: white;
-    }
-    </style>
-    <div class="overlay"></div>
-    <div class="dialog-container">
-        <h3>🔓 Logout Confirmation</h3>
-        <p>Are you sure you want to logout?</p>
-        <div class="dialog-buttons">
-                         <button class="dialog-button btn-yes" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'confirm_logout_clicked'}, '*')">✅ Yes, Logout</button>
-             <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'cancel_logout_clicked'}, '*')">❌ Cancel</button>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Hidden buttons to capture JavaScript clicks
-    if st.button("", key="confirm_logout_clicked"):
-        st.session_state.authenticated = False
-        st.session_state.pop("show_logout_confirm", None)
-        rerun()
-    
-    if st.button("", key="cancel_logout_clicked"):
-        st.session_state.pop("show_logout_confirm", None)
-        rerun()
+def confirm_logout():
+    """Use a native Streamlit modal for logout confirmation."""
+    if st.session_state.get("show_logout_confirm", False):
+        with st.modal("🔓 Logout Confirmation"):
+            st.write("Are you sure you want to logout?")
+            c1, c2 = st.columns(2, gap="small")
+            if c1.button("✅ Yes, Logout"):
+                st.session_state.authenticated = False
+                st.session_state.show_logout_confirm = False
+                rerun()
+            if c2.button("❌ Cancel"):
+                st.session_state.show_logout_confirm = False
+                rerun()
 
 # Menu tabs in the first 4 columns
 with col1:

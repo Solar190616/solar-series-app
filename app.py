@@ -87,66 +87,26 @@ if not st.session_state.authenticated:
 
     st.stop()
 
-# 1) Make sure “menu” always exists
-if "menu" not in st.session_state:
-    st.session_state["menu"] = "PCS Settings"
-
-# ─── TOP BAR: Logout + Arrow-Stepper Menu ───
-c0, c1 = st.columns([1, 6], gap="small")
-with c0:
+# ─── TOP BAR: Logout + Horizontal Menu ───
+cols = st.columns([1, 4], gap="small")
+with cols[0]:
     if st.button("🔓 Logout", key="btn_logout"):
         st.session_state.authenticated = False
         rerun()
-
-with c1:
-    # 2) Read the current page from session state
-    page = st.session_state["menu"]
-
-    # 3) Render the three arrow tabs
-    html = """<div class="stepper-container">"""
-    for key,label in [
-      ("PCS Settings",   "PCS入力"),
-      ("Modules",        "モジュール入力"),
-      ("Circuit Config", "回路構成"),
-    ]:
-        act = "active" if page==key else ""
-        html += f"""
-          <div class="step {act}" 
-               onclick="window.location.search='?menu={key}'">
-            {label}
-          </div>
-        """
-    html += "</div>"
-
-    # 4) Inject the CSS/HTML
-    st.markdown(html + """
-    <style>
-      .stepper-container { display:flex; justify-content:center; align-items:center; margin:8px 0 16px; }
-      .step {
-        position: relative;
-        background:#0284c7; color:#fff; padding:8px 16px; margin-right:4px;
-        font-weight:600; cursor:pointer; user-select:none;
-      }
-      .step:last-child { margin-right:0; }
-      .step:after {
-        content:""; position:absolute; top:0; right:-12px;
-        border-top:12px solid transparent; border-bottom:12px solid transparent;
-        border-left:12px solid #0284c7;
-      }
-      .step.active { background:#0ea5e9; }
-      .step.active:after { border-left-color:#0ea5e9; }
-      .step:hover { background:#06b6d4; }
-      .step:hover:after { border-left-color:#06b6d4; }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # 5) Now pick up any “?menu=” in the URL via the new API
-    params = st.query_params
-    if "menu" in params and params["menu"][0] in ["PCS Settings","Modules","Circuit Config"]:
-        st.session_state["menu"] = params["menu"][0]
-    page = st.session_state["menu"]
+with cols[1]:
+    page = st.radio(
+        "", 
+        ["PCS Settings", "Modules", "Circuit Config"],
+        index=["PCS Settings", "Modules", "Circuit Config"].index(
+            st.session_state.get("menu", "PCS Settings")
+        ),
+        horizontal=True,
+        key="menu"
+    )
+    st.session_state.menu = page
 
 st.markdown("---")
+
 
 # ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":

@@ -144,27 +144,32 @@ if page == "PCS Settings":
                 rerun()
 
     # List existing PCS
+    pcs_list = load_pcs()
     if pcs_list:
-        st.subheader("■ Saved PCS / Inverters")
-        hdr = st.columns([1,2,1,1,1,1,2], gap="small")
-        for col, title in zip(hdr, ["No","Name","Max V","Min V","#MPPT","Max I","Actions"]):
-            col.markdown(f"**{title}**")
-        for idx, (nm,p) in enumerate(pcs_list.items(), start=1):
-            cols = st.columns([1,2,1,1,1,1,2], gap="small")
-            cols[0].write(idx)
-            cols[1].write(nm)
-            cols[2].write(p["max_voltage"])
-            cols[3].write(p["mppt_min_voltage"])
-            cols[4].write(p["mppt_count"])
-            cols[5].write(p["mppt_max_current"])
-            with cols[6]:
-                if st.button("✏️", key=f"edit_pcs_{nm}"):
-                    st.session_state["edit_pcs"] = nm
-                    rerun()
-                if st.button("🗑️", key=f"del_pcs_{nm}"):
-                    delete_pcs(nm)
-                    st.success(f"🗑️ Deleted '{nm}'")
-                    rerun()
+    st.subheader("■ Saved PCS / Inverters")
+    # build a DataFrame
+    df_pcs = pd.DataFrame.from_dict(pcs_list, orient="index") \
+               .reset_index() \
+               .rename(columns={
+                 "index":"Name",
+                 "max_voltage":"Max V (V)",
+                 "mppt_min_voltage":"Min V (V)",
+                 "mppt_count":"# MPPT",
+                 "mppt_max_current":"Max I (A)"
+               })
+    # show a scrollable, responsive table
+    st.dataframe(df_pcs, use_container_width=True)
+
+    # below the table, let user pick one to Edit/Delete
+    choice = st.selectbox("Select a PCS to edit or delete", df_pcs["Name"].tolist(), key="pcs_choice_mobile")
+    col1, col2 = st.columns(2, gap="small")
+    if col1.button("✏️ Edit", key="pcs_edit_btn"):
+        st.session_state["edit_pcs"] = choice
+        rerun()
+    if col2.button("🗑️ Delete", key="pcs_del_btn"):
+        delete_pcs(choice)
+        st.success(f"Deleted {choice}")
+        rerun()
 
     # Edit a PCS
     if "edit_pcs" in st.session_state:
@@ -207,29 +212,35 @@ elif page == "Modules":
                 rerun()
 
     # List existing Modules
-    if mods:
-        st.subheader("■ モジュールリスト")
-        hdr = st.columns([1,2,2,1,1,1,1,1,2], gap="small")
-        for col,title in zip(hdr, ["No","メーカー","型番","Pmax","Voc","Vmpp","Isc","Tc","Actions"]):
-            col.markdown(f"**{title}**")
-        for idx,(mn,m) in enumerate(mods.items(), start=1):
-            cols = st.columns([1,2,2,1,1,1,1,1,2], gap="small")
-            cols[0].write(idx)
-            cols[1].write(m["manufacturer"])
-            cols[2].write(mn)
-            cols[3].write(m["pmax_stc"])
-            cols[4].write(m["voc_stc"])
-            cols[5].write(m["vmpp_noc"])
-            cols[6].write(m["isc_noc"])
-            cols[7].write(m["temp_coeff"])
-            with cols[8]:
-                if st.button("✏️", key=f"edit_mod_{mn}"):
-                    st.session_state["edit_mod"] = mn
-                    rerun()
-                if st.button("🗑️", key=f"del_mod_{mn}"):
-                    delete_module(mn)
-                    st.success(f"🗑️ Deleted '{mn}'")
-                    rerun()
+   # … inside your “Modules” page, after the Add-New expander …
+
+mods = load_modules()
+if mods:
+    st.subheader("■ モジュールリスト")
+    df_mod = pd.DataFrame([
+        {
+          "Model No.": mn,
+          "メーカー名": m["manufacturer"],
+          "Pmax (W)":   m["pmax_stc"],
+          "Voc (V)":    m["voc_stc"],
+          "Vmpp (V)":   m["vmpp_noc"],
+          "Isc (A)":    m["isc_noc"],
+          "TempCoeff":  m["temp_coeff"],
+        }
+        for mn, m in mods.items()
+    ])
+    st.dataframe(df_mod, use_container_width=True)
+
+    # pick one to edit/delete
+    choice = st.selectbox("Select a Module to edit or delete", df_mod["Model No."].tolist(), key="mod_choice_mobile")
+    cm, dm = st.columns(2, gap="small")
+    if cm.button("✏️ Edit", key="mod_edit_btn"):
+        st.session_state["edit_mod"] = choice
+        rerun()
+    if dm.button("🗑️ Delete", key="mod_del_btn"):
+        delete_module(choice)
+        st.success(f"Deleted {choice}")
+        rerun()
 
     # Edit a Module
     if "edit_mod" in st.session_state:

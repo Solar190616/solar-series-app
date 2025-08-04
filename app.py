@@ -103,7 +103,7 @@ with cols[1]:
         horizontal=True,
         key="menu"
     )
-    st.session_state.menu = page
+    st.session_state["menu"] = page
 
 st.markdown("---")
 

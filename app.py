@@ -121,40 +121,58 @@ with col1:
         '''
     html += '</div>'
 
-    st.markdown(html + """
-    <style>
-      .stepper-container {
-        display:flex; justify-content:center; align-items:center;
-        margin:0.5rem 0 1rem;
-      }
-      .step {
-        position: relative;
-        background: #0284c7; color: #fff;
-        padding: 0.5rem 1rem; margin-right: 4px;
-        font-weight: 600; cursor: pointer; user-select: none;
-      }
-      .step:last-child { margin-right: 0; }
-      .step:after {
-        content: "";
-        position: absolute; top:0; right:-12px;
-        border-top:12px solid transparent;
-        border-bottom:12px solid transparent;
-        border-left:12px solid #0284c7;
-      }
-      .step.active {
-        background: #0ea5e9;
-      }
-      .step.active:after {
-        border-left-color: #0ea5e9;
-      }
-      .step:hover {
-        background: #06b6d4;
-      }
-      .step:hover:after {
-        border-left-color: #06b6d4;
-      }
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="stepper-container">
+          <div class="step {active1}" onclick="window.location.search='?menu=PCS Settings'">
+            PCS入力
+          </div>
+          <div class="step {active2}" onclick="window.location.search='?menu=Modules'">
+            モジュール入力
+          </div>
+          <div class="step {active3}" onclick="window.location.search='?menu=Circuit Config'">
+            回路構成
+          </div>
+        </div>
+        <style>
+          .stepper-container {{
+            display:flex; justify-content:center; align-items:center;
+            margin:0.5rem 0 1rem;
+          }}
+          .step {{
+            position: relative;
+            background: #0284c7; color: #fff;
+            padding: 0.5rem 1rem; margin-right: 4px;
+            font-weight: 600; cursor: pointer; user-select: none;
+          }}
+          .step:last-child {{ margin-right:0; }}
+          .step:after {{
+            content:"";
+            position:absolute; top:0; right:-12px;
+            border-top:12px solid transparent;
+            border-bottom:12px solid transparent;
+            border-left:12px solid #0284c7;
+          }}
+          .step.active {{
+            background: #0ea5e9;
+          }}
+          .step.active:after {{
+            border-left-color: #0ea5e9;
+          }}
+          .step:hover {{
+            background: #06b6d4;
+          }}
+          .step:hover:after {{
+            border-left-color: #06b6d4;
+          }}
+        </style>
+        """.format(
+            active1="active" if page=="PCS Settings" else "",
+            active2="active" if page=="Modules" else "",
+            active3="active" if page=="Circuit Config" else "",
+        ),
+        unsafe_allow_html=True,
+    )
 
     # read new ?menu= param via new API
     params = st.query_params

@@ -3,386 +3,837 @@ import math
 import pandas as pd
 
 from auth import check_login, create_user, update_password
-from db import (
+from db   import (
     init_db,
     save_module, load_modules, delete_module,
     save_pcs,    load_pcs,    delete_pcs
 )
 
-# ─── PAGE & STYLING SETUP ─────────────────────────────────────────────────────
-st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
+# Tell the browser about our manifest
+st.markdown(
+    '<link rel="manifest" href="/manifest.json">',
+    unsafe_allow_html=True
+)
 
+# Register our service worker
+st.markdown(
+    """
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.error('SW registration failed:', err));
+        });
+      }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+# ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
 <style>
-  /* hide top‐right Streamlit icons */
   header > div:nth-child(2) { display: none !important; }
-  header a[href*="github.com"] { display: none !important; }
-
-  /* tighten app padding & gaps */
   .css-1d391kg { padding: 1rem !important; }
   .css-1lcbmhc { gap: 0.5rem !important; }
+  
+  /* Custom styling for menu tabs */
+  .stButton > button {
+    width: 100%;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 12px 16px;
+    margin: 4px 0;
+    transition: all 0.2s ease;
+  }
+  
+  /* Primary button styling (selected tab) */
+  .stButton > button[data-baseweb="button"][aria-pressed="true"],
+  .stButton > button[data-baseweb="button"].primary {
+    background-color: #1f77b4 !important;
+    color: white !important;
+    border: 2px solid #1f77b4 !important;
+  }
+  
+  /* Secondary button styling (unselected tab) */
+  .stButton > button[data-baseweb="button"] {
+    background-color: #f0f2f6 !important;
+    color: #262730 !important;
+    border: 2px solid #e0e0e0 !important;
+  }
+  
+  /* Hover effects */
+  .stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Force button state updates */
+  .stButton > button[data-baseweb="button"][aria-pressed="true"] {
+    background-color: #1f77b4 !important;
+    color: white !important;
+    border-color: #1f77b4 !important;
+  }
+  
+  /* Ensure proper button styling for all states */
+  .stButton > button[data-baseweb="button"]:not([aria-pressed="true"]) {
+    background-color: #f0f2f6 !important;
+    color: #262730 !important;
+    border-color: #e0e0e0 !important;
+  }
+  
+  /* Logout button styling */
+  .stButton > button[key="logout_btn"] {
+    background-color: #ff4b4b;
+    color: white;
+    border: 2px solid #ff4b4b;
+  }
+  
+  .stButton > button[key="logout_btn"]:hover {
+    background-color: #e63939;
+    border-color: #e63939;
+  }
 </style>
 """, unsafe_allow_html=True)
 
-# Safe rerun helper
 rerun = getattr(st, "experimental_rerun", lambda: None)
+st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
 
-# ─── INITIALIZE DB ────────────────────────────────────────────────────────────
+st.markdown(
+    """
+    <style>
+      /* hide ONLY the GitHub repo/fork icon in the header */
+      header a[href*="github.com"] {
+        display: none !important;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ─── INIT DATABASE ───
 init_db()
 
-# ─── AUTHENTICATION ───────────────────────────────────────────────────────────
+# ─── AUTHENTICATION ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
     st.title("🔒 Login")
-    u = st.text_input("Username", key="login_user")
-    p = st.text_input("Password", type="password", key="login_pass")
-    if st.button("Login"):
-        if check_login(u, p):
+
+    # — Login form —
+    user = st.text_input("Username", key="login_usr")
+    pwd  = st.text_input("Password", type="password", key="login_pwd")
+    if st.button("Login", key="btn_login"):
+        if check_login(user, pwd):
             st.session_state.authenticated = True
             rerun()
         else:
-            st.error("❌ Invalid credentials")
+            st.error("❌ Invalid username or password")
 
     st.markdown("---")
-    with st.expander("📝 Sign Up"):
-        su = st.text_input("New Username", key="signup_user")
-        sp = st.text_input("New Password", type="password", key="signup_pass")
-        sc = st.text_input("Confirm Password", type="password", key="signup_conf")
-        if st.button("Register"):
-            if not su:
-                st.error("Username required")
+
+    # — Sign Up —
+    with st.expander("📝 Sign Up", expanded=False):
+        su = st.text_input("New Username", key="sign_usr")
+        sp = st.text_input("New Password", type="password", key="sign_pwd")
+        sc = st.text_input("Confirm Password", type="password", key="sign_conf")
+        if st.button("Register", key="btn_register"):
+            if not su.strip():
+                st.error("Username cannot be empty")
             elif sp != sc:
                 st.error("Passwords do not match")
             elif create_user(su, sp):
-                st.success("✅ Registration successful")
+                st.success(f"✅ Account '{su}' created. You may now log in.")
             else:
-                st.error("Username already exists")
+                st.error(f"Username '{su}' already exists")
 
-    with st.expander("🔄 Reset Password"):
-        ru = st.text_input("Username", key="reset_user")
-        op = st.text_input("Old Password", type="password", key="reset_old")
-        np = st.text_input("New Password", type="password", key="reset_new")
-        nc = st.text_input("Confirm New", type="password", key="reset_conf")
-        if st.button("Reset"):
-            if np != nc:
-                st.error("Passwords must match")
-            elif not check_login(ru, op):
+    # — Reset Password —
+    with st.expander("🔄 Reset Password", expanded=False):
+        ru  = st.text_input("Username", key="rst_usr")
+        old = st.text_input("Old Password", type="password", key="rst_old")
+        new = st.text_input("New Password", type="password", key="rst_new")
+        cn  = st.text_input("Confirm New Password", type="password", key="rst_cn")
+        if st.button("Reset Password", key="btn_reset"):
+            if new != cn:
+                st.error("New passwords must match")
+            elif not check_login(ru, old):
                 st.error("Invalid username or old password")
             else:
-                update_password(ru, np)
-                st.success("✅ Password updated")
+                update_password(ru, new)
+                st.success("✅ Password updated! Please log in.")
 
     st.stop()
 
-# ─── ENSURE MENU STATE ────────────────────────────────────────────────────────
-if "menu" not in st.session_state:
-    st.session_state.menu = "PCS Settings"
+# ─── HEADER WITH LOGOUT & MENU ───
+# Create a header with logout button and menu tabs
+col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
 
-# ─── MODAL CONFIRMATION HELPERS ────────────────────────────────────────────────
-def confirm_modal(key, title, text, on_confirm):
-    """Generic modal. Show if st.session_state[key] True."""
-    if st.session_state.get(key):
-        with st.modal(title):
-            st.write(text)
-            c1, c2 = st.columns(2, gap="small")
-            if c1.button("✅ Yes"):
-                st.session_state[key] = False
-                on_confirm()
-            if c2.button("❌ Cancel"):
-                st.session_state[key] = False
-                rerun()
-
-# ─── TOP BAR: LOGOUT + 3-STEP ARROW MENU ─────────────────────────────────────
-col0, col1 = st.columns([1,6], gap="small")
-with col0:
+# Logout button in the rightmost column
+with col5:
     if st.button("🔓 Logout", key="logout_btn"):
-        st.session_state.logout_confirm = True
+        st.session_state.show_logout_confirm = True
         rerun()
-confirm_modal(
-    key="logout_confirm",
-    title="🔓 Logout Confirmation",
-    text="Are you sure you want to logout?",
-    on_confirm=lambda: (st.session_state.update(authenticated=False), rerun())
-)
 
-with col1:
-    page = st.session_state.menu
-    # build arrow‐stepper HTML
-    html = '<div class="stepper-container">'
-    for idx,(key,label) in enumerate([
-        ("PCS Settings","PCS入力"),
-        ("Modules","モジュール入力"),
-        ("Circuit Config","回路構成")
-    ], start=1):
-        circ = ["","①","②","③"][idx]
-        act  = "active" if page==key else ""
-        html += f'''
-          <div class="step {act}"
-               onclick="window.location.search='?menu={key}'">
-            {circ}{label}
-          </div>'''
-    html += "</div>"
-    st.markdown(html + """
+# Logout confirmation dialog
+if st.session_state.get("show_logout_confirm", False):
+    # Add overlay and dialog with buttons inside
+    st.markdown("""
     <style>
-      .stepper-container {
-        display:flex; justify-content:center; align-items:center;
-        margin:0.5rem 0 1rem;
-      }
-      .step {
-        position: relative;
-        background:#0284c7; color:#fff;
-        padding:0.5rem 1rem; margin-right:4px;
-        font-weight:600; cursor:pointer; user-select:none;
-      }
-      .step:last-child { margin-right:0; }
-      .step:after {
-        content:""; position:absolute; top:0; right:-12px;
-        border-top:12px solid transparent;
-        border-bottom:12px solid transparent;
-        border-left:12px solid #0284c7;
-      }
-      .step.active {
-        background:#0ea5e9;
-      }
-      .step.active:after {
-        border-left-color:#0ea5e9;
-      }
-      .step:hover {
-        background:#06b6d4;
-      }
-      .step:hover:after {
-        border-left-color:#06b6d4;
-      }
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    .dialog-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        border: 2px solid #ff4b4b;
+        z-index: 1000;
+        min-width: 300px;
+        text-align: center;
+    }
+    .dialog-title {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    .dialog-message {
+        margin-bottom: 20px;
+        color: #666;
+    }
+    .dialog-buttons {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    .dialog-button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        min-width: 80px;
+    }
+    .btn-yes {
+        background-color: #28a745;
+        color: white;
+    }
+    .btn-cancel {
+        background-color: #dc3545;
+        color: white;
+    }
     </style>
+    <div class="overlay"></div>
+    <div class="dialog-container">
+        <div class="dialog-title">🔓 Logout Confirmation</div>
+        <div class="dialog-message">Are you sure you want to logout?</div>
+        <div class="dialog-buttons">
+            <button class="dialog-button btn-yes" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'confirm_logout_clicked'}, '*')">✅ Yes, Logout</button>
+            <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'cancel_logout_clicked'}, '*')">❌ Cancel</button>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
+    
+    # Hidden buttons to capture JavaScript clicks
+    if st.button("", key="confirm_logout_clicked"):
+        st.session_state.authenticated = False
+        st.session_state.pop("show_logout_confirm", None)
+        rerun()
+    
+    if st.button("", key="cancel_logout_clicked"):
+        st.session_state.pop("show_logout_confirm", None)
+        rerun()
 
-    # capture ?menu param via new API
-    qp = st.query_params
-    if qp.get("menu", [None])[0] in ["PCS Settings","Modules","Circuit Config"]:
-        st.session_state.menu = qp["menu"][0]
-    page = st.session_state.menu
+# Menu tabs in the first 4 columns
+with col1:
+    pcs_selected = st.button("①PCS入力", key="menu_pcs", type="primary" if st.session_state.get("menu_page", "PCS Settings") == "PCS Settings" else "secondary")
+    if pcs_selected:
+        st.session_state.menu_page = "PCS Settings"
+        rerun()
 
-st.markdown("---")
+with col2:
+    modules_selected = st.button("②モジュール入力", key="menu_modules", type="primary" if st.session_state.get("menu_page") == "Modules" else "secondary")
+    if modules_selected:
+        st.session_state.menu_page = "Modules"
+        rerun()
 
-# ─── PAGE 1: PCS SETTINGS ─────────────────────────────────────────────────────
+with col3:
+    circuit_selected = st.button("③回路構成", key="menu_circuit", type="primary" if st.session_state.get("menu_page") == "Circuit Config" else "secondary")
+    if circuit_selected:
+        st.session_state.menu_page = "Circuit Config"
+        rerun()
+
+# Set default page if not set
+if "menu_page" not in st.session_state:
+    st.session_state.menu_page = "PCS Settings"
+
+page = st.session_state.menu_page
+
+# ─── GLOBAL DIALOG FUNCTIONS ───
+def show_delete_confirmation():
+    if st.session_state.get("show_delete_confirm", False):
+        target = st.session_state.get("delete_target", "")
+        delete_type = st.session_state.get("delete_type", "")
+        
+        # Add overlay and dialog with buttons inside
+        st.markdown(f"""
+        <style>
+        .overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }}
+        .dialog-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 2px solid #ff4b4b;
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }}
+        .dialog-title {{
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+        }}
+        .dialog-message {{
+            margin-bottom: 10px;
+            color: #666;
+        }}
+        .dialog-subtitle {{
+            margin-bottom: 20px;
+            color: #999;
+            font-size: 12px;
+        }}
+        .dialog-buttons {{
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }}
+        .dialog-button {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 80px;
+        }}
+        .btn-yes {{
+            background-color: #28a745;
+            color: white;
+        }}
+        .btn-cancel {{
+            background-color: #dc3545;
+            color: white;
+        }}
+        </style>
+        <div class="overlay"></div>
+        <div class="dialog-container">
+            <div class="dialog-title">🗑️ Delete Confirmation</div>
+            <div class="dialog-message">Are you sure you want to delete "{target}"?</div>
+            <div class="dialog-subtitle">This action cannot be undone.</div>
+            <div class="dialog-buttons">
+                <button class="dialog-button btn-yes" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'confirm_delete_clicked'}}, '*')">✅ Yes, Delete</button>
+                <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'cancel_delete_clicked'}}, '*')">❌ Cancel</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hidden buttons to capture JavaScript clicks
+        if st.button("", key="confirm_delete_clicked"):
+            if delete_type == "pcs":
+                delete_pcs(target)
+            elif delete_type == "module":
+                delete_module(target)
+            st.session_state.pop("show_delete_confirm", None)
+            st.session_state.pop("delete_target", None)
+            st.session_state.pop("delete_type", None)
+            st.session_state.show_success_dialog = True
+            st.session_state.success_message = f"Deleted → {target}"
+            rerun()
+        
+        if st.button("", key="cancel_delete_clicked"):
+            st.session_state.pop("show_delete_confirm", None)
+            st.session_state.pop("delete_target", None)
+            st.session_state.pop("delete_type", None)
+            rerun()
+
+def show_success_dialog():
+    if st.session_state.get("show_success_dialog", False):
+        message = st.session_state.get("success_message", "Operation completed successfully!")
+        
+        # Add overlay and dialog with button inside
+        st.markdown(f"""
+        <style>
+        .overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }}
+        .dialog-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 2px solid #00ff00;
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }}
+        .dialog-title {{
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+        }}
+        .dialog-message {{
+            margin-bottom: 20px;
+            color: #666;
+        }}
+        .dialog-buttons {{
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+        }}
+        .dialog-button {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 80px;
+            background-color: #28a745;
+            color: white;
+        }}
+        </style>
+        <div class="overlay"></div>
+        <div class="dialog-container">
+            <div class="dialog-title">✅ Success</div>
+            <div class="dialog-message">{message}</div>
+            <div class="dialog-buttons">
+                <button class="dialog-button" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'ok_success_clicked'}}, '*')">✅ OK</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hidden button to capture JavaScript clicks
+        if st.button("", key="ok_success_clicked"):
+            st.session_state.pop("show_success_dialog", None)
+            st.session_state.pop("success_message", None)
+            rerun()
+
+def show_edit_confirmation():
+    if st.session_state.get("show_edit_confirm", False):
+        target = st.session_state.get("edit_target", "")
+        edit_type = st.session_state.get("edit_type", "")
+        
+        # Add overlay and dialog with buttons inside
+        st.markdown(f"""
+        <style>
+        .overlay {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }}
+        .dialog-container {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 2px solid #1f77b4;
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+        }}
+        .dialog-title {{
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+        }}
+        .dialog-message {{
+            margin-bottom: 10px;
+            color: #666;
+        }}
+        .dialog-subtitle {{
+            margin-bottom: 20px;
+            color: #999;
+            font-size: 12px;
+        }}
+        .dialog-buttons {{
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }}
+        .dialog-button {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 80px;
+        }}
+        .btn-yes {{
+            background-color: #28a745;
+            color: white;
+        }}
+        .btn-cancel {{
+            background-color: #dc3545;
+            color: white;
+        }}
+        </style>
+        <div class="overlay"></div>
+        <div class="dialog-container">
+            <div class="dialog-title">✏️ Edit Confirmation</div>
+            <div class="dialog-message">Do you want to edit "{target}"?</div>
+            <div class="dialog-subtitle">You will be able to modify all fields.</div>
+            <div class="dialog-buttons">
+                <button class="dialog-button btn-yes" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'confirm_edit_clicked'}}, '*')">✅ Yes, Edit</button>
+                <button class="dialog-button btn-cancel" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'cancel_edit_clicked'}}, '*')">❌ No, Cancel</button>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Hidden buttons to capture JavaScript clicks
+        if st.button("", key="confirm_edit_clicked"):
+            if edit_type == "pcs":
+                st.session_state["edit_pcs"] = target
+            elif edit_type == "module":
+                st.session_state["edit_mod"] = target
+            st.session_state.pop("show_edit_confirm", None)
+            st.session_state.pop("edit_target", None)
+            st.session_state.pop("edit_type", None)
+            rerun()
+        
+        if st.button("", key="cancel_edit_clicked"):
+            st.session_state.pop("show_edit_confirm", None)
+            st.session_state.pop("edit_target", None)
+            st.session_state.pop("edit_type", None)
+            rerun()
+
+# Show dialogs if needed
+show_delete_confirmation()
+show_edit_confirmation()
+show_success_dialog()
+
+# ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":
     st.header("⚙️ Add / Manage PCS / Inverter Specs")
 
-    # add new PCS
+    # — Add New PCS —
     with st.expander("➕ Add New PCS"):
-        n1, n2 = st.columns(2, gap="small")
-        name = n1.text_input("PCS Name", key="new_pcs_name")
-        maxv = n2.number_input("Max Voltage (V)", key="new_pcs_max")
-        n3, n4 = st.columns(2, gap="small")
-        minv = n3.number_input("MPPT Min Voltage (V)", key="new_pcs_min")
-        curv = n4.number_input("MPPT Max Current (A)", key="new_pcs_cur")
-        count= st.number_input("# MPPT Inputs", key="new_pcs_cnt", min_value=1, step=1)
-        if st.button("Save PCS"):
-            if not name:
-                st.error("Name is required")
+        name  = st.text_input("PCS Name", key="new_pcs_name")
+        c1,c2 = st.columns(2, gap="small")
+        max_v = c1.number_input("Max Voltage (V)", key="new_pcs_max")
+        min_v = c2.number_input("MPPT Min Voltage (V)", key="new_pcs_min")
+        c3,c4 = st.columns(2, gap="small")
+        count = c3.number_input("MPPT Inputs", key="new_pcs_count", min_value=1, step=1)
+        max_i = c4.number_input("MPPT Max Current (A)", key="new_pcs_cur", format="%.1f")
+        if st.button("Save PCS", key="btn_save_pcs"):
+            if not name.strip():
+                st.error("Name required")
             else:
-                save_pcs(name,maxv,minv,int(count),curv)
-                st.success(f"Saved → {name}")
+                save_pcs(name, max_v, min_v, int(count), max_i)
+                st.session_state.show_success_dialog = True
+                st.session_state.success_message = f"Saved → {name}"
                 rerun()
 
-    pcsd = load_pcs()
-    if pcsd:
+    # — Responsive PCS Table —
+    pcs_list = load_pcs()
+    if pcs_list:
         st.subheader("■ Saved PCS / Inverters")
-        df = pd.DataFrame.from_dict(pcsd, orient="index").reset_index()
-        df.columns = ["Name","max_voltage","mppt_min_voltage","mppt_count","mppt_max_current"]
-        st.dataframe(df, use_container_width=True)
-
-        sel = st.selectbox("Select PCS", df["Name"], key="pcs_sel")
-        c1,c2 = st.columns(2, gap="small")
-        if c1.button("✏️ Edit PCS"):
-            st.session_state.edit_confirm = True
-            st.session_state.edit_target  = sel
-            st.session_state.edit_type    = "pcs"
-            rerun()
-        if c2.button("🗑️ Delete PCS"):
-            st.session_state.delete_confirm = True
-            st.session_state.delete_target  = sel
-            st.session_state.delete_type    = "pcs"
-            rerun()
-
-    # edit/delete modals
-    confirm_modal(
-        key="edit_confirm",
-        title="✏️ Edit Confirmation",
-        text=f"Do you want to edit '{st.session_state.get('edit_target','')}'?",
-        on_confirm=lambda: (st.session_state.update(edit_pcs=st.session_state.pop("edit_target")), rerun())
-    )
-    confirm_modal(
-        key="delete_confirm",
-        title="🗑️ Delete Confirmation",
-        text=f"Delete '{st.session_state.get('delete_target','')}' permanently?",
-        on_confirm=lambda: (
-            delete_pcs(st.session_state.pop("delete_target")),
-            st.success("Deleted successfully"),
-            rerun()
+        df_pcs = (
+            pd.DataFrame.from_dict(pcs_list, orient="index")
+              .reset_index()
+              .rename(columns={
+                  "index":"Name",
+                  "max_voltage":"Max V (V)",
+                  "mppt_min_voltage":"Min V (V)",
+                  "mppt_count":"# MPPT",
+                  "mppt_max_current":"Max I (A)"
+              })
         )
-    )
+        st.dataframe(df_pcs, use_container_width=True)
 
-# ─── PAGE 2: MODULES ──────────────────────────────────────────────────────────
+        choice = st.selectbox(
+            "Select a PCS to Edit/Delete",
+            df_pcs["Name"],
+            key="pcs_choice"
+        )
+        e1,e2 = st.columns(2, gap="small")
+        if e1.button("✏️ Edit", key="pcs_edit_btn"):
+            st.session_state.show_edit_confirm = True
+            st.session_state.edit_target = choice
+            st.session_state.edit_type = "pcs"
+            rerun()
+        if e2.button("🗑️ Delete", key="pcs_del_btn"):
+            if st.session_state.get("edit_pcs") == choice:
+                st.error("Cannot delete while editing. Please save or cancel the edit first.")
+            else:
+                st.session_state.show_delete_confirm = True
+                st.session_state.delete_target = choice
+                st.session_state.delete_type = "pcs"
+                rerun()
+
+    # — Edit PCS Form —
+    if "edit_pcs" in st.session_state:
+        nm = st.session_state["edit_pcs"]
+        p  = pcs_list[nm]
+        st.subheader(f"✏️ Edit PCS: {nm}")
+        new_name = st.text_input("PCS Name", value=nm, key="edit_pcs_name")
+        max_v    = st.number_input("Max Voltage (V)",       value=p["max_voltage"], key="edit_pcs_max")
+        min_v    = st.number_input("MPPT Min Voltage (V)",  value=p["mppt_min_voltage"], key="edit_pcs_min")
+        count    = st.number_input("MPPT Inputs",           value=p["mppt_count"], key="edit_pcs_count", min_value=1, step=1)
+        max_i    = st.number_input("MPPT Max Current (A)",  value=p["mppt_max_current"], key="edit_pcs_cur")
+        
+        col1, col2 = st.columns(2, gap="small")
+        with col1:
+            if st.button("Save Changes", key="btn_save_pcs_edit"):
+                if not new_name.strip():
+                    st.error("Name required")
+                else:
+                    # Delete old entry if name changed
+                    if new_name != nm:
+                        delete_pcs(nm)
+                    # Save new entry
+                    save_pcs(new_name, max_v, min_v, int(count), max_i)
+                    st.session_state.show_success_dialog = True
+                    st.session_state.success_message = f"Updated → {new_name}"
+                    st.session_state.pop("edit_pcs", None)
+                    rerun()
+        with col2:
+            if st.button("Cancel", key="btn_cancel_pcs_edit"):
+                st.session_state.pop("edit_pcs", None)
+                rerun()
+
+# ─── PAGE 2: Modules ───
 elif page == "Modules":
     st.header("📥 Add / Manage Solar Panel Modules")
 
+    # — Add New Module —
     with st.expander("➕ Add New Module"):
+        m1,m2 = st.columns(2, gap="small")
+        manufacturer = m1.text_input("メーカー名", key="new_mod_mfr")
+        model_no     = m2.text_input("型番",       key="new_mod_no")
         c1,c2 = st.columns(2, gap="small")
-        mfr    = c1.text_input("メーカー名", key="new_mod_mfr")
-        mno    = c2.text_input("型番",     key="new_mod_no")
+        pmax = c1.number_input("STC Pmax (W)", key="new_mod_pmax")
+        voc  = c2.number_input("STC Voc (V)",  key="new_mod_voc")
         c3,c4 = st.columns(2, gap="small")
-        pmax   = c3.number_input("STC Pmax (W)", key="new_mod_pmax")
-        voc    = c4.number_input("STC Voc (V)",  key="new_mod_voc")
-        c5,c6 = st.columns(2, gap="small")
-        vmpp   = c5.number_input("NOC Vmpp (V)", key="new_mod_vmpp")
-        isc    = c6.number_input("NOC Isc (A)",  key="new_mod_isc")
-        tc     = st.number_input("温度係数 (%/℃)", key="new_mod_tc", value=-0.3)
-        if st.button("Save Module"):
-            if not mfr or not mno:
-                st.error("Both fields required")
+        vmpp = c3.number_input("NOC Vmpp (V)", key="new_mod_vmpp")
+        isc  = c4.number_input("NOC Isc (A)",  key="new_mod_isc")
+        tc   = st.number_input("温度係数 (%/℃)", key="new_mod_tc", value=-0.3)
+        if st.button("Save Module", key="btn_save_mod"):
+            if not manufacturer.strip() or not model_no.strip():
+                st.error("メーカー名と型番は必須です。")
             else:
-                save_module(mfr,mno,pmax,voc,vmpp,isc,tc)
-                st.success(f"Saved → {mno}")
+                save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc)
+                st.session_state.show_success_dialog = True
+                st.session_state.success_message = f"Saved → {model_no}"
                 rerun()
 
+    # — Responsive Module Table —
     mods = load_modules()
     if mods:
         st.subheader("■ モジュールリスト")
-        dfm = pd.DataFrame([
+        df_mod = pd.DataFrame([
             {
               "Model No.": mn,
-              "メーカー名": d["manufacturer"],
-              "Pmax (W)": d["pmax_stc"],
-              "Voc (V)":  d["voc_stc"],
-              "Vmpp (V)": d["vmpp_noc"],
-              "Isc (A)":  d["isc_noc"],
-              "TempCoeff":d["temp_coeff"]
+              "メーカー名": m["manufacturer"],
+              "Pmax (W)":   m["pmax_stc"],
+              "Voc (V)":    m["voc_stc"],
+              "Vmpp (V)":   m["vmpp_noc"],
+              "Isc (A)":    m["isc_noc"],
+              "TempCoeff":  m["temp_coeff"],
             }
-            for mn,d in mods.items()
+            for mn,m in mods.items()
         ])
-        st.dataframe(dfm, use_container_width=True)
+        st.dataframe(df_mod, use_container_width=True)
 
-        sel = st.selectbox("Select Module", dfm["Model No."], key="mod_sel")
-        e1,e2 = st.columns(2, gap="small")
-        if e1.button("✏️ Edit Module"):
-            st.session_state.edit_confirm = True
-            st.session_state.edit_target  = sel
-            st.session_state.edit_type    = "mod"
+        choice = st.selectbox("Select a Module to Edit/Delete",
+                              df_mod["Model No."], key="mod_choice")
+        m1,m2 = st.columns(2, gap="small")
+        if m1.button("✏️ Edit", key="mod_edit_btn"):
+            st.session_state.show_edit_confirm = True
+            st.session_state.edit_target = choice
+            st.session_state.edit_type = "module"
             rerun()
-        if e2.button("🗑️ Delete Module"):
-            st.session_state.delete_confirm = True
-            st.session_state.delete_target  = sel
-            st.session_state.delete_type    = "mod"
-            rerun()
+        if m2.button("🗑️ Delete", key="mod_del_btn"):
+            if st.session_state.get("edit_mod") == choice:
+                st.error("Cannot delete while editing. Please save or cancel the edit first.")
+            else:
+                st.session_state.show_delete_confirm = True
+                st.session_state.delete_target = choice
+                st.session_state.delete_type = "module"
+                rerun()
 
-    confirm_modal(
-        key="edit_confirm",
-        title="✏️ Edit Confirmation",
-        text=f"Do you want to edit '{st.session_state.get('edit_target','')}'?",
-        on_confirm=lambda: (
-            st.session_state.update(edit_mod=st.session_state.pop("edit_target")),
-            rerun()
-        )
-    )
-    confirm_modal(
-        key="delete_confirm",
-        title="🗑️ Delete Confirmation",
-        text=f"Delete '{st.session_state.get('delete_target','')}' permanently?",
-        on_confirm=lambda: (
-            delete_module(st.session_state.pop("delete_target")),
-            st.success("Deleted successfully"),
-            rerun()
-        )
-    )
-
-    # If edit_mod is set, show the edit form
+    # — Edit Module Form —
     if "edit_mod" in st.session_state:
-        mn = st.session_state.pop("edit_mod")
+        mn = st.session_state["edit_mod"]
         d  = mods[mn]
         st.subheader(f"✏️ Edit Module: {mn}")
-        mfr = st.text_input("メーカー名", value=d["manufacturer"], key="edt_mod_mfr")
-        p   = st.number_input("STC Pmax (W)", value=d["pmax_stc"], key="edt_mod_pmax")
-        v   = st.number_input("STC Voc (V)",  value=d["voc_stc"],  key="edt_mod_voc")
-        vm  = st.number_input("NOC Vmpp (V)", value=d["vmpp_noc"], key="edt_mod_vmpp")
-        i   = st.number_input("NOC Isc (A)",  value=d["isc_noc"],  key="edt_mod_isc")
-        t   = st.number_input("温度係数 (%/℃)", value=d["temp_coeff"],key="edt_mod_tc")
-        if st.button("Save Changes"):
-            save_module(mfr,mn,p,v,vm,i,t)
-            st.success("Module updated")
-            rerun()
+        mf = st.text_input("メーカー名", value=d["manufacturer"], key="edit_mod_mfr")
+        new_model_no = st.text_input("型番", value=mn, key="edit_mod_no")
+        pm = st.number_input("STC Pmax (W)",      value=d["pmax_stc"], key="edit_mod_pmax")
+        vc = st.number_input("STC Voc (V)",       value=d["voc_stc"],  key="edit_mod_voc")
+        vm = st.number_input("NOC Vmpp (V)",      value=d["vmpp_noc"], key="edit_mod_vmpp")
+        ic = st.number_input("NOC Isc (A)",       value=d["isc_noc"],  key="edit_mod_isc")
+        tc = st.number_input("温度係数 (%/℃)",     value=d["temp_coeff"],key="edit_mod_tc")
+        
+        col1, col2 = st.columns(2, gap="small")
+        with col1:
+            if st.button("Save Changes", key="btn_save_mod_edit"):
+                if not mf.strip() or not new_model_no.strip():
+                    st.error("メーカー名と型番は必須です。")
+                else:
+                    # Delete old entry if model number changed
+                    if new_model_no != mn:
+                        delete_module(mn)
+                    # Save new entry
+                    save_module(mf, new_model_no, pm, vc, vm, ic, tc)
+                    st.session_state.show_success_dialog = True
+                    st.session_state.success_message = f"Updated → {new_model_no}"
+                    st.session_state.pop("edit_mod", None)
+                    rerun()
+        with col2:
+            if st.button("Cancel", key="btn_cancel_mod_edit"):
+                st.session_state.pop("edit_mod", None)
+                rerun()
 
-# ─── PAGE 3: SERIES-ONLY CIRCUIT CONFIG ───────────────────────────────────────
+# ─── PAGE 3: Circuit Config ───
 else:
     st.header("🔢 Series-Only Circuit Configuration")
 
-    pcsd = load_pcs()
-    if not pcsd:
-        st.warning("まず PCS 設定を追加してください。")
+    # 1) select a saved PCS spec
+    pcs_list = load_pcs()
+    if not pcs_list:
+        st.warning("⚠️ 先に「PCS Settings」タブで PCS/インバータを追加してください。")
         st.stop()
-    sel_pcs = st.selectbox("Select PCS", list(pcsd.keys()), key="cfg_pcs")
-    pcs     = pcsd[sel_pcs]
+    spec = st.selectbox("Select PCS/Inverter Spec", list(pcs_list.keys()), key="cfg_pcs")
+    pcs  = pcs_list[spec]
 
-    modd = load_modules()
-    if not modd:
-        st.warning("まず モジュールを追加してください。")
+    # 2) select a module
+    mods = load_modules()
+    if not mods:
+        st.warning("⚠️ 先に「Modules」タブでモジュールを追加してください。")
         st.stop()
-    sel_mod = st.selectbox("モジュールを選択", list(modd.keys()), key="cfg_mod")
-    mod     = modd[sel_mod]
+    mod_name = st.selectbox("モジュールを選択", list(mods.keys()), key="cfg_mod")
+    m = mods[mod_name]
 
-    c1,c2 = st.columns(2, gap="small")
-    tmin   = c1.number_input("設置最低温度 (℃)", key="cfg_tmin", value=-5, step=1)
-    tmax   = c2.number_input("設置最高温度 (℃)", key="cfg_tmax", value=45, step=1)
+    # 3) temps
+    t1, t2 = st.columns(2, gap="small")
+    t_min = t1.number_input("設置最低温度 (℃)", key="cfg_tmin", value=-5, step=1)
+    t_max = t2.number_input("設置最高温度 (℃)", key="cfg_tmax", value=45, step=1)
 
-    # adjust Voc/Vmpp by temp
-    voc_adj  = mod["voc_stc"]*(1+mod["temp_coeff"]/100*(tmin-25))
-    vmpp_adj = mod["vmpp_noc"]*(1+mod["temp_coeff"]/100*(tmax-25))
+    # 4) pull PCS values
+    v_max    = pcs["max_voltage"]
+    v_mp_min = pcs["mppt_min_voltage"]
+    mppt_n   = pcs["mppt_count"]
+    i_mppt   = pcs["mppt_max_current"]
 
-    max_s = math.floor(pcs["max_voltage"]/voc_adj) if voc_adj>0 else 0
-    min_s = math.ceil(pcs["mppt_min_voltage"]/vmpp_adj) if vmpp_adj>0 else 0
+    # 5) compute adjusted Voc/Vmpp & series bounds
+    voc_a   = m["voc_stc"]*(1 + m["temp_coeff"]/100*(t_min-25))
+    vmpp_a  = m["vmpp_noc"]*(1 + m["temp_coeff"]/100*(t_max-25))
+    max_s   = math.floor(v_max    / voc_a)  if voc_a>0   else 0
+    min_s   = math.ceil (v_mp_min / vmpp_a) if vmpp_a>0 else 0
 
-    st.info(f"直列可能枚数：**{min_s}**～**{max_s}** 枚")
+    st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚", icon="ℹ️")
 
-    any_err = False
-    total   = 0
+    # 6) loop per MPPT
+    any_err    = False
+    total_mods = 0
 
-    for i in range(pcs["mppt_count"]):
+    for i in range(mppt_n):
         st.divider()
-        st.subheader(f"MPPT回路 {i+1}")
-        ref   = None
-        used  = 0
-        cur_i = 0
+        st.subheader(f"MPPT入力回路 {i+1}")
+        ref_s = None
+        vals  = []
 
         for j in range(3):
-            colA, colB = st.columns([3,1], gap="small")
-            colA.write(f"回路{j+1} 直列枚数")
-            key = f"cell_{i}_{j}"
-            val = colB.number_input("", key=key, min_value=0, max_value=max_s, value=(min_s if j==0 else 0), step=1)
-            if val>0:
-                used += 1
-                cur_i += mod["isc_noc"]
-                total += val
-                if val<min_s or val>max_s:
-                    colB.error("範囲外", icon="🚫")
-                    any_err = True
-                if ref is None:
-                    ref = val
-                elif val != ref:
-                    colB.error("統一してください", icon="🚫")
-                    any_err = True
+            c1, c2 = st.columns([3,1], gap="small")
+            label = f"回路{j+1} の直列枚数 (0=未使用)"
+            c1.write(label)
+            key = f"ser_{i}_{j}"
+            default = min_s if j==0 else 0
+            s = c2.number_input("直列枚数", key=key,
+                               min_value=0, max_value=max_s,
+                               value=default, step=1)
+            vals.append(s)
 
-        # check current
-        if used>0 and cur_i>pcs["mppt_max_current"]:
-            st.error(f"入力電流 {cur_i}A が上限 {pcs['mppt_max_current']}A を超えています。", icon="🚫")
-            any_err = True
+            if s>0:
+                # range check
+                if s<min_s or s>max_s:
+                    c2.error(f"{s} 枚は範囲外です。{min_s}～{max_s} 枚で入力してください。", icon="🚫")
+                    any_err = True
+                # consistency check
+                if ref_s is None:
+                    ref_s = s
+                elif s!=ref_s:
+                    c2.error("この MPPT内の全回路で同じ枚数を設定してください。", icon="🚫")
+                    any_err = True
+                total_mods += s
 
+        # current‐sum check
+        used = sum(1 for v in vals if v>0)
+        if used>0:
+            cur = used * m["isc_noc"]
+            if cur>i_mppt:
+                c1, c2 = st.columns([3,1], gap="small")
+                c2.error(f"合計入力電流 {cur:.1f}A が PCS 許容 {i_mppt}A を超えています。\n"
+                         "直列枚数または使用回路数を減らしてください。", icon="🚫")
+                any_err = True
+
+    # 7) final summary / error
     if any_err:
-        st.error("⚠️ 構成にエラーがあります。修正してください。")
-    elif total==0:
-        st.error("少なくとも1つの回路を使用してください。")
+        st.error("⚠️ 構成にエラーがあります。上記メッセージをご確認ください。")
+    elif total_mods == 0:
+        st.error("少なくとも1つの回路で直列枚数を入力してください。")
     else:
+        power = total_mods * m["pmax_stc"]
         st.success("✅ 全 MPPT 構成は有効です。")
-        st.metric("合計モジュール数", f"{total} 枚")
-        st.metric("合計PV出力", f"{total*mod['pmax_stc']/1000:.2f} kW")
+        c1, c2 = st.columns(2, gap="large")
+        c1.metric("合計モジュール数", f"{total_mods} 枚")
+        c2.metric("合計PV出力", f"{power/1000:.2f} kW")

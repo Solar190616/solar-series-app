@@ -3,55 +3,70 @@ import math
 import pandas as pd
 
 from auth import check_login, create_user, update_password
-from db import (
+from db   import (
     init_db,
     save_module, load_modules, delete_module,
     save_pcs,    load_pcs,    delete_pcs
 )
 
-# ─── PAGE CONFIG & GLOBAL CSS ───────────────────────────────────────────────
-st.set_page_config(
-    page_title="回路構成可否判定シート",
-    layout="wide"
+# Tell the browser about our manifest
+st.markdown(
+    '<link rel="manifest" href="/manifest.json">',
+    unsafe_allow_html=True
 )
 
+# Register our service worker
+st.markdown(
+    """
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.error('SW registration failed:', err));
+        });
+      }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+# ─── GLOBAL CSS & PAGE CONFIG ───
 st.markdown("""
 <style>
-  /* Hide Streamlit header icons (share, fork, GitHub) */
   header > div:nth-child(2) { display: none !important; }
-  header a[href*="github.com"] { display: none !important; }
-
-  /* Tighten padding & column gaps */
   .css-1d391kg { padding: 1rem !important; }
   .css-1lcbmhc { gap: 0.5rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── PWA (optional) ─────────────────────────────────────────────────────────
-st.markdown('<link rel="manifest" href="/manifest.json">', unsafe_allow_html=True)
-st.markdown("""
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .catch(err => console.error('SW registration failed:', err));
-    });
-  }
-</script>
-""", unsafe_allow_html=True)
-
-# safe rerun helper
 rerun = getattr(st, "experimental_rerun", lambda: None)
+st.set_page_config(page_title="回路構成可否判定シート", layout="wide")
 
-# ─── DATABASE INITIALIZATION ────────────────────────────────────────────────
+st.markdown(
+    """
+    <style>
+      /* hide ONLY the GitHub repo/fork icon in the header */
+      header a[href*="github.com"] {
+        display: none !important;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ─── INIT DATABASE ───
 init_db()
 
-# ─── AUTHENTICATION ─────────────────────────────────────────────────────────
+# ─── AUTHENTICATION ───
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
     st.title("🔒 Login")
+
+    # — Login form —
     user = st.text_input("Username", key="login_usr")
     pwd  = st.text_input("Password", type="password", key="login_pwd")
     if st.button("Login", key="btn_login"):
@@ -63,6 +78,7 @@ if not st.session_state.authenticated:
 
     st.markdown("---")
 
+    # — Sign Up —
     with st.expander("📝 Sign Up", expanded=False):
         su = st.text_input("New Username", key="sign_usr")
         sp = st.text_input("New Password", type="password", key="sign_pwd")
@@ -77,6 +93,7 @@ if not st.session_state.authenticated:
             else:
                 st.error(f"Username '{su}' already exists")
 
+    # — Reset Password —
     with st.expander("🔄 Reset Password", expanded=False):
         ru  = st.text_input("Username", key="rst_usr")
         old = st.text_input("Old Password", type="password", key="rst_old")
@@ -93,107 +110,28 @@ if not st.session_state.authenticated:
 
     st.stop()
 
-# ─── ENSURE MENU STATE ───────────────────────────────────────────────────────
-if "menu" not in st.session_state:
-    st.session_state["menu"] = "PCS Settings"
+# ─── SIDEBAR & LOGOUT ───
+if st.sidebar.button("🔓 Logout"):
+    st.session_state.authenticated = False
+    rerun()
 
-# ─── TOP BAR: LOGOUT + ARROW-STEPPER MENU ──────────────────────────────────
-col0, col1 = st.columns([1, 6], gap="small")
-with col0:
-    if st.button("🔓 Logout", key="btn_logout"):
-        st.session_state.authenticated = False
-        rerun()
+page = st.sidebar.radio(
+    "☰ Menu",
+    ["PCS Settings", "Modules", "Circuit Config"],
+    key="menu_radio"
+)
 
-with col1:
-    page = st.session_state["menu"]
-    # build the arrow-stepper
-    html = '<div class="stepper-container">'
-    for key, label in [
-        ("PCS Settings",   "PCS入力"),
-        ("Modules",        "モジュール入力"),
-        ("Circuit Config", "回路構成"),
-    ], start=1):
-        # pick the Unicode circled number3⃣
-        circled = ["", "1⃣", "2⃣", "3⃣"][idx]
-        active = "active" if page == key else ""
-        html += f'''
-          <div class="step {active}" onclick="window.location.search='?menu={key}'">
-            {label}
-          </div>
-        '''
-    html += '</div>'
-
-    st.markdown(
-        """
-        <div class="stepper-container">
-          <div class="step {active1}" onclick="window.location.search='?menu=PCS Settings'">
-            PCS入力
-          </div>
-          <div class="step {active2}" onclick="window.location.search='?menu=Modules'">
-            モジュール入力
-          </div>
-          <div class="step {active3}" onclick="window.location.search='?menu=Circuit Config'">
-            回路構成
-          </div>
-        </div>
-        <style>
-          .stepper-container {{
-            display:flex; justify-content:center; align-items:center;
-            margin:0.5rem 0 1rem;
-          }}
-          .step {{
-            position: relative;
-            background: #0284c7; color: #fff;
-            padding: 0.5rem 1rem; margin-right: 4px;
-            font-weight: 600; cursor: pointer; user-select: none;
-          }}
-          .step:last-child {{ margin-right:0; }}
-          .step:after {{
-            content:"";
-            position:absolute; top:0; right:-12px;
-            border-top:12px solid transparent;
-            border-bottom:12px solid transparent;
-            border-left:12px solid #0284c7;
-          }}
-          .step.active {{
-            background: #0ea5e9;
-          }}
-          .step.active:after {{
-            border-left-color: #0ea5e9;
-          }}
-          .step:hover {{
-            background: #06b6d4;
-          }}
-          .step:hover:after {{
-            border-left-color: #06b6d4;
-          }}
-        </style>
-        """.format(
-            active1="active" if page=="PCS Settings" else "",
-            active2="active" if page=="Modules" else "",
-            active3="active" if page=="Circuit Config" else "",
-        ),
-        unsafe_allow_html=True,
-    )
-
-    # read new ?menu= param via new API
-    params = st.query_params
-    if "menu" in params and params["menu"][0] in ["PCS Settings","Modules","Circuit Config"]:
-        st.session_state["menu"] = params["menu"][0]
-    page = st.session_state["menu"]
-
-st.markdown("---")
-
-# ─── PAGE 1: PCS Settings ───────────────────────────────────────────────────
+# ─── PAGE 1: PCS Settings ───
 if page == "PCS Settings":
     st.header("⚙️ Add / Manage PCS / Inverter Specs")
 
+    # — Add New PCS —
     with st.expander("➕ Add New PCS"):
         name  = st.text_input("PCS Name", key="new_pcs_name")
-        c1, c2 = st.columns(2, gap="small")
+        c1,c2 = st.columns(2, gap="small")
         max_v = c1.number_input("Max Voltage (V)", key="new_pcs_max")
         min_v = c2.number_input("MPPT Min Voltage (V)", key="new_pcs_min")
-        c3, c4 = st.columns(2, gap="small")
+        c3,c4 = st.columns(2, gap="small")
         count = c3.number_input("MPPT Inputs", key="new_pcs_count", min_value=1, step=1)
         max_i = c4.number_input("MPPT Max Current (A)", key="new_pcs_cur", format="%.1f")
         if st.button("Save PCS", key="btn_save_pcs"):
@@ -204,6 +142,7 @@ if page == "PCS Settings":
                 st.success(f"Saved → {name}")
                 rerun()
 
+    # — Responsive PCS Table —
     pcs_list = load_pcs()
     if pcs_list:
         st.subheader("■ Saved PCS / Inverters")
@@ -211,18 +150,21 @@ if page == "PCS Settings":
             pd.DataFrame.from_dict(pcs_list, orient="index")
               .reset_index()
               .rename(columns={
-                  "index": "Name",
+                  "index":"Name",
                   "max_voltage":"Max V (V)",
                   "mppt_min_voltage":"Min V (V)",
                   "mppt_count":"# MPPT",
-                  "mppt_max_current":"Max I (A)",
+                  "mppt_max_current":"Max I (A)"
               })
         )
         st.dataframe(df_pcs, use_container_width=True)
 
-        choice = st.selectbox("Select a PCS to Edit/Delete",
-                              df_pcs["Name"], key="pcs_choice")
-        e1, e2 = st.columns(2, gap="small")
+        choice = st.selectbox(
+            "Select a PCS to Edit/Delete",
+            df_pcs["Name"],
+            key="pcs_choice"
+        )
+        e1,e2 = st.columns(2, gap="small")
         if e1.button("✏️ Edit", key="pcs_edit_btn"):
             st.session_state["edit_pcs"] = choice
             rerun()
@@ -231,32 +173,34 @@ if page == "PCS Settings":
             st.success(f"Deleted → {choice}")
             rerun()
 
+    # — Edit PCS Form —
     if "edit_pcs" in st.session_state:
         nm = st.session_state.pop("edit_pcs")
         p  = pcs_list[nm]
         st.subheader(f"✏️ Edit PCS: {nm}")
         new_name = st.text_input("PCS Name", value=nm, key="edit_pcs_name")
-        max_v    = st.number_input("Max Voltage (V)",       value=p["max_voltage"],    key="edit_pcs_max")
-        min_v    = st.number_input("MPPT Min Voltage (V)",  value=p["mppt_min_voltage"],key="edit_pcs_min")
-        count    = st.number_input("MPPT Inputs",           value=p["mppt_count"],     key="edit_pcs_count", min_value=1, step=1)
-        max_i    = st.number_input("MPPT Max Current (A)",  value=p["mppt_max_current"],key="edit_pcs_cur")
+        max_v    = st.number_input("Max Voltage (V)",       value=p["max_voltage"], key="edit_pcs_max")
+        min_v    = st.number_input("MPPT Min Voltage (V)",  value=p["mppt_min_voltage"], key="edit_pcs_min")
+        count    = st.number_input("MPPT Inputs",           value=p["mppt_count"], key="edit_pcs_count", min_value=1, step=1)
+        max_i    = st.number_input("MPPT Max Current (A)",  value=p["mppt_max_current"], key="edit_pcs_cur")
         if st.button("Save Changes", key="btn_save_pcs_edit"):
             save_pcs(new_name, max_v, min_v, int(count), max_i)
             st.success(f"Updated → {new_name}")
             rerun()
 
-# ─── PAGE 2: Modules ─────────────────────────────────────────────────────────
+# ─── PAGE 2: Modules ───
 elif page == "Modules":
     st.header("📥 Add / Manage Solar Panel Modules")
 
+    # — Add New Module —
     with st.expander("➕ Add New Module"):
-        m1, m2 = st.columns(2, gap="small")
+        m1,m2 = st.columns(2, gap="small")
         manufacturer = m1.text_input("メーカー名", key="new_mod_mfr")
         model_no     = m2.text_input("型番",       key="new_mod_no")
-        c1, c2 = st.columns(2, gap="small")
+        c1,c2 = st.columns(2, gap="small")
         pmax = c1.number_input("STC Pmax (W)", key="new_mod_pmax")
         voc  = c2.number_input("STC Voc (V)",  key="new_mod_voc")
-        c3, c4 = st.columns(2, gap="small")
+        c3,c4 = st.columns(2, gap="small")
         vmpp = c3.number_input("NOC Vmpp (V)", key="new_mod_vmpp")
         isc  = c4.number_input("NOC Isc (A)",  key="new_mod_isc")
         tc   = st.number_input("温度係数 (%/℃)", key="new_mod_tc", value=-0.3)
@@ -268,6 +212,7 @@ elif page == "Modules":
                 st.success(f"Saved → {model_no}")
                 rerun()
 
+    # — Responsive Module Table —
     mods = load_modules()
     if mods:
         st.subheader("■ モジュールリスト")
@@ -287,7 +232,7 @@ elif page == "Modules":
 
         choice = st.selectbox("Select a Module to Edit/Delete",
                               df_mod["Model No."], key="mod_choice")
-        m1, m2 = st.columns(2, gap="small")
+        m1,m2 = st.columns(2, gap="small")
         if m1.button("✏️ Edit", key="mod_edit_btn"):
             st.session_state["edit_mod"] = choice
             rerun()
@@ -296,6 +241,7 @@ elif page == "Modules":
             st.success(f"Deleted → {choice}")
             rerun()
 
+    # — Edit Module Form —
     if "edit_mod" in st.session_state:
         mn = st.session_state.pop("edit_mod")
         d  = mods[mn]
@@ -311,40 +257,46 @@ elif page == "Modules":
             st.success(f"Updated → {mn}")
             rerun()
 
-# ─── PAGE 3: Circuit Config ─────────────────────────────────────────────────
+# ─── PAGE 3: Circuit Config ───
 else:
     st.header("🔢 Series-Only Circuit Configuration")
 
+    # 1) select a saved PCS spec
     pcs_list = load_pcs()
     if not pcs_list:
-        st.warning("⚠️ まず「PCS Settings」でPCSを追加してください。")
+        st.warning("⚠️ 先に「PCS Settings」タブで PCS/インバータを追加してください。")
         st.stop()
     spec = st.selectbox("Select PCS/Inverter Spec", list(pcs_list.keys()), key="cfg_pcs")
     pcs  = pcs_list[spec]
 
+    # 2) select a module
     mods = load_modules()
     if not mods:
-        st.warning("⚠️ まず「Modules」でモジュールを追加してください。")
+        st.warning("⚠️ 先に「Modules」タブでモジュールを追加してください。")
         st.stop()
     mod_name = st.selectbox("モジュールを選択", list(mods.keys()), key="cfg_mod")
     m = mods[mod_name]
 
+    # 3) temps
     t1, t2 = st.columns(2, gap="small")
     t_min = t1.number_input("設置最低温度 (℃)", key="cfg_tmin", value=-5, step=1)
     t_max = t2.number_input("設置最高温度 (℃)", key="cfg_tmax", value=45, step=1)
 
+    # 4) pull PCS values
     v_max    = pcs["max_voltage"]
     v_mp_min = pcs["mppt_min_voltage"]
     mppt_n   = pcs["mppt_count"]
     i_mppt   = pcs["mppt_max_current"]
 
-    voc_a  = m["voc_stc"]*(1 + m["temp_coeff"]/100*(t_min-25))
-    vmpp_a = m["vmpp_noc"]*(1 + m["temp_coeff"]/100*(t_max-25))
-    max_s  = math.floor(v_max    / voc_a)   if voc_a>0   else 0
-    min_s  = math.ceil (v_mp_min / vmpp_a)  if vmpp_a>0 else 0
+    # 5) compute adjusted Voc/Vmpp & series bounds
+    voc_a   = m["voc_stc"]*(1 + m["temp_coeff"]/100*(t_min-25))
+    vmpp_a  = m["vmpp_noc"]*(1 + m["temp_coeff"]/100*(t_max-25))
+    max_s   = math.floor(v_max    / voc_a)  if voc_a>0   else 0
+    min_s   = math.ceil (v_mp_min / vmpp_a) if vmpp_a>0 else 0
 
     st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚", icon="ℹ️")
 
+    # 6) loop per MPPT
     any_err    = False
     total_mods = 0
 
@@ -356,7 +308,8 @@ else:
 
         for j in range(3):
             c1, c2 = st.columns([3,1], gap="small")
-            c1.write(f"回路{j+1} の直列枚数 (0=未使用)")
+            label = f"回路{j+1} の直列枚数 (0=未使用)"
+            c1.write(label)
             key = f"ser_{i}_{j}"
             default = min_s if j==0 else 0
             s = c2.number_input("", key=key,
@@ -365,26 +318,31 @@ else:
             vals.append(s)
 
             if s>0:
+                # range check
                 if s<min_s or s>max_s:
-                    c2.error(f"{s} 枚は範囲外です。({min_s}～{max_s} 枚)", icon="🚫")
+                    c2.error(f"{s} 枚は範囲外です。{min_s}～{max_s} 枚で入力してください。", icon="🚫")
                     any_err = True
+                # consistency check
                 if ref_s is None:
                     ref_s = s
-                elif s != ref_s:
-                    c2.error("同数で統一してください。", icon="🚫")
+                elif s!=ref_s:
+                    c2.error("この MPPT内の全回路で同じ枚数を設定してください。", icon="🚫")
                     any_err = True
                 total_mods += s
 
-        used = len([v for v in vals if v>0])
+        # current‐sum check
+        used = sum(1 for v in vals if v>0)
         if used>0:
             cur = used * m["isc_noc"]
-            if cur > i_mppt:
-                _, c2 = st.columns([3,1], gap="small")
-                c2.error(f"合計入力電流 {cur:.1f}A が PCS許容 {i_mppt}A を超えています。", icon="🚫")
+            if cur>i_mppt:
+                c1, c2 = st.columns([3,1], gap="small")
+                c2.error(f"合計入力電流 {cur:.1f}A が PCS 許容 {i_mppt}A を超えています。\n"
+                         "直列枚数または使用回路数を減らしてください。", icon="🚫")
                 any_err = True
 
+    # 7) final summary / error
     if any_err:
-        st.error("⚠️ 構成エラーがあります。上記を修正してください。")
+        st.error("⚠️ 構成にエラーがあります。上記メッセージをご確認ください。")
     elif total_mods == 0:
         st.error("少なくとも1つの回路で直列枚数を入力してください。")
     else:

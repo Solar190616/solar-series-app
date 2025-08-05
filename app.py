@@ -173,38 +173,6 @@ if not st.session_state.authenticated:
         else:
             st.error("❌ ユーザー名またはパスワードが無効です")
 
-    st.markdown("---")
-
-    # — Sign Up —
-    with st.expander("📝 新規登録", expanded=False):
-        su = st.text_input("新しいユーザー名", key="sign_usr")
-        sp = st.text_input("新しいパスワード", type="password", key="sign_pwd")
-        sc = st.text_input("パスワード確認", type="password", key="sign_conf")
-        if st.button("登録", key="btn_register"):
-            if not su.strip():
-                st.error("ユーザー名は必須です")
-            elif sp != sc:
-                st.error("パスワードが一致しません")
-            elif create_user(su, sp):
-                st.success(f"✅ アカウント '{su}' が作成されました。ログインしてください。")
-            else:
-                st.error(f"ユーザー名 '{su}' は既に存在します")
-
-    # — Reset Password —
-    with st.expander("🔄 パスワードリセット", expanded=False):
-        ru  = st.text_input("ユーザー名", key="rst_usr")
-        old = st.text_input("現在のパスワード", type="password", key="rst_old")
-        new = st.text_input("新しいパスワード", type="password", key="rst_new")
-        cn  = st.text_input("新しいパスワード確認", type="password", key="rst_cn")
-        if st.button("パスワード更新", key="btn_reset"):
-            if new != cn:
-                st.error("新しいパスワードが一致しません")
-            elif not check_login(ru, old):
-                st.error("ユーザー名または現在のパスワードが無効です")
-            else:
-                update_password(ru, new)
-                st.success("✅ パスワードが更新されました！ログインしてください。")
-
     st.stop()
 
 # ─── HEADER WITH LOGOUT & MENU ───

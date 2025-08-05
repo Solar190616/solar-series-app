@@ -745,8 +745,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     
     # SECTION 2: モジュールの回路構成
     st.markdown("### 🔧 2. モジュールの回路構成")
-    st.markdown("---")
-    
+        
    # MPPT instruction text in red
     st.markdown(
         '<p style="color:red; font-weight:bold; margin-bottom: 0.5rem;">'
@@ -760,6 +759,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
         '</p>',
         unsafe_allow_html=True
     )
+    st.markdown("---")
 
     # MPPT configuration loop
     any_err    = False

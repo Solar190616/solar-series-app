@@ -697,7 +697,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     
     # SECTION 1: 直列可能枚数
     st.markdown("### 📊 1. 直列可能枚数")
-    st.markdown("--")
+    st.markdown("---")
     
     # Compact selection section
     col1, col2, col3 = st.columns(3, gap="small")

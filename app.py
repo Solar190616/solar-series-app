@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
 """, unsafe_allow_html=True)
 
 # ─── PCS SETTINGS TAB ───
-with st.expander("➀PCS入力 ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+with st.expander("【➀PCS入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
     # PCS Settings content
     st.header("⚙️ インバータの追加・管理")
 
@@ -456,7 +456,7 @@ with st.expander("➀PCS入力 ※タブを展開/最小化するにはここを
                 rerun()
 
 # ─── MODULES TAB ───
-with st.expander("➁モジュール入力 ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
+with st.expander("【➁モジュール入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
     # Modules content
     st.header("📱 モジュールの追加・管理")
 
@@ -566,7 +566,7 @@ with st.expander("➁モジュール入力 ※タブを展開/最小化するに
                 rerun()
 
 # ─── CIRCUIT CONFIG TAB ───
-with st.expander("➂回路構成 ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
+with st.expander("【➂回路構成】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
     # Circuit Config content
     st.header("🔢 回路構成判定")
 

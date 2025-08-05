@@ -483,67 +483,7 @@ elif page == "Modules":
 else:
     st.header("🔢 回路構成判定")
     
-    # Circuit connection reference image
-    with st.expander("🔗 回路接続イメージ", expanded=False):
-        st.subheader("回路接続イメージ")
-        
-        # Section 1: Without Connection Box
-        st.markdown("**接続箱なし時**")
-        col1, col2, col3 = st.columns([1, 1, 2])
-        
-        with col1:
-            st.markdown("**太陽光パネル**")
-            st.markdown("⬛ パネル1")
-            st.markdown("⬛ パネル2") 
-            st.markdown("⬛ パネル3")
-        
-        with col2:
-            st.markdown("**接続**")
-            st.markdown("➡️")
-            st.markdown("➡️")
-            st.markdown("➡️")
-        
-        with col3:
-            st.markdown("**マルチパワーコンディショナ**")
-            st.markdown("*SPM-DE55-A*")
-            st.markdown("• PV入力1")
-            st.markdown("• PV入力2")
-            st.markdown("• PV入力3")
-        
-        st.divider()
-        
-        # Section 2: With Connection Box
-        st.markdown("**接続箱使用時**")
-        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 2])
-        
-        with col1:
-            st.markdown("**太陽光パネル**")
-            st.markdown("⬛ パネル1")
-            st.markdown("⬛ パネル2")
-            st.markdown("⬛ パネル3")
-        
-        with col2:
-            st.markdown("**接続**")
-            st.markdown("➡️")
-            st.markdown("➡️")
-            st.markdown("➡️")
-        
-        with col3:
-            st.markdown("**接続箱**")
-            st.markdown("📦")
-        
-        with col4:
-            st.markdown("**接続**")
-            st.markdown("➡️")
-        
-        with col5:
-            st.markdown("**マルチパワーコンディショナ**")
-            st.markdown("*SPM-DE55-A*")
-            st.markdown("• PV入力1")
-            st.markdown("• PV入力2")
-            st.markdown("• PV入力3")
-        
-        st.caption("※ この図は参考用です。実際の接続方法は機器の仕様書をご確認ください。")
+
 
     # 1) select a saved PCS spec
     pcs_list = load_pcs()
@@ -562,9 +502,11 @@ else:
     m = mods[mod_name]
 
     # 3) temps
-    t1, t2 = st.columns(2, gap="small")
-    t_min = t1.number_input("設置場所の最低温度（℃）", key="cfg_tmin", value=-5, step=1)
-    t_max = t2.number_input("設置場所の最高温度（℃）", key="cfg_tmax", value=45, step=1)
+    t_min = st.selectbox("設置場所の最低温度（℃）", 
+                        options=[0, -5, -10, -15, -20, -25, -30], 
+                        key="cfg_tmin", 
+                        index=1)  # Default to -5°C (index 1)
+    t_max = 50  # Fixed maximum temperature
 
     # 4) pull PCS values
     v_max    = pcs["max_voltage"]
@@ -631,7 +573,44 @@ else:
         st.error("少なくとも1つの回路で直列枚数を入力してください。")
     else:
         power = total_mods * m["pmax_stc"]
-        st.success("✅ 全 MPPT 構成は有効です。")
-        c1, c2 = st.columns(2, gap="large")
-        c1.metric("合計モジュール数", f"{total_mods} 枚")
-        c2.metric("合計PV出力", f"{power/1000:.2f} kW")
+        
+        # Enhanced success section with better styling
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.2);
+            text-align: center;
+        ">
+            <h2 style="color: #155724; margin: 0 0 20px 0; font-size: 24px;">
+                ✅ 全 MPPT 構成は有効です
+            </h2>
+            <div style="display: flex; justify-content: space-around; align-items: center;">
+                <div style="
+                    background: white;
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin: 0 10px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    min-width: 200px;
+                ">
+                    <div style="font-size: 14px; color: #6c757d; margin-bottom: 8px;">合計モジュール数</div>
+                    <div style="font-size: 32px; font-weight: bold; color: #1f77b4;">{total_mods} 枚</div>
+                </div>
+                <div style="
+                    background: white;
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin: 0 10px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    min-width: 200px;
+                ">
+                    <div style="font-size: 14px; color: #6c757d; margin-bottom: 8px;">合計PV出力</div>
+                    <div style="font-size: 32px; font-weight: bold; color: #28a745;">{power_kw:.2f} kW</div>
+                </div>
+            </div>
+        </div>
+        """.format(total_mods=total_mods, power_kw=power/1000), unsafe_allow_html=True)

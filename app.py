@@ -696,7 +696,7 @@ with st.expander("【➁モジュール入力】※タブを展開/最小化す�
 with st.expander("【➂回路構成】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
     
     # SECTION 1: 直列可能枚数
-    st.markdown("### 📊 1. 直列可能枚数")
+    st.markdown("# 📊 1. 直列可能枚数")
     st.markdown("---")
     
     # Compact selection section

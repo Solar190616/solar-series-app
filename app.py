@@ -208,64 +208,181 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ─── HEADER WITH LOGOUT & MENU ───
-# Create a header with logout button and menu tabs
-col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+# Tabbed interface with collapsible content
+st.markdown("""
+<style>
+/* Hide Streamlit default elements */
+header > div:nth-child(2) { display: none !important; }
+.css-1d391kg { padding: 1rem !important; }
+.css-1lcbmhc { gap: 0.5rem !important; }
 
-# Logout button in the rightmost column
-with col5:
-    if st.button("🔓 ログアウト", key="logout_btn"):
-        st.session_state.show_logout_confirm = True
-        rerun()
+/* AGGRESSIVE ORANGE HIGHLIGHTING - FORCE STYLING */
+div[data-testid="stExpander"] > div[data-testid="stExpanderHeader"] {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    color: #495057 !important;
+    border: 2px solid #dee2e6 !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    font-weight: normal !important;
+    border-radius: 12px !important;
+    margin-bottom: 10px !important;
+    padding: 15px 20px !important;
+    transition: all 0.3s ease !important;
+}
 
-# Menu tabs in the first 4 columns
-with col1:
-    pcs_selected = st.button("①PCS入力", key="menu_pcs", type="primary" if st.session_state.get("menu_page", "PCS Settings") == "PCS Settings" else "secondary")
-    if pcs_selected:
-        st.session_state.menu_page = "PCS Settings"
-        rerun()
+/* FORCE ORANGE BACKGROUND FOR SELECTED TABS */
+div[data-testid="stExpander"] > div[data-testid="stExpanderHeader"][aria-expanded="true"],
+.streamlit-expanderHeader[aria-expanded="true"],
+[data-testid="stExpanderHeader"][aria-expanded="true"],
+div[data-testid="stExpander"] [data-testid="stExpanderHeader"][aria-expanded="true"] {
+    background: linear-gradient(135deg, #ff8c00 0%, #ff6b35 100%) !important;
+    color: white !important;
+    border: 3px solid #ff6b35 !important;
+    box-shadow: 0 6px 15px rgba(255, 140, 0, 0.4) !important;
+    font-weight: bold !important;
+    border-radius: 12px !important;
+    margin-bottom: 10px !important;
+    padding: 15px 20px !important;
+    transform: translateY(-2px) !important;
+}
 
-with col2:
-    modules_selected = st.button("②モジュール入力", key="menu_modules", type="primary" if st.session_state.get("menu_page") == "Modules" else "secondary")
-    if modules_selected:
-        st.session_state.menu_page = "Modules"
-        rerun()
+/* FORCE BOLD ORANGE BORDERS FOR ENTIRE CONTENT AREA - NOT INDIVIDUAL ELEMENTS */
+div[data-testid="stExpander"] > div[data-testid="stExpanderContent"] {
+    border: 4px solid #ff8c00 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    margin-top: 10px !important;
+    background: white !important;
+    box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3) !important;
+}
 
-with col3:
-    circuit_selected = st.button("③回路構成", key="menu_circuit", type="primary" if st.session_state.get("menu_page") == "Circuit Config" else "secondary")
-    if circuit_selected:
-        st.session_state.menu_page = "Circuit Config"
-        rerun()
+/* Remove borders from individual elements inside the content area */
+div[data-testid="stExpander"] > div[data-testid="stExpanderContent"] * {
+    border: none !important;
+    box-shadow: none !important;
+}
 
-# Set default page if not set
-if "menu_page" not in st.session_state:
-    st.session_state.menu_page = "PCS Settings"
+/* Ensure tables and other elements don't have borders */
+div[data-testid="stExpander"] > div[data-testid="stExpanderContent"] table,
+div[data-testid="stExpander"] > div[data-testid="stExpanderContent"] .stDataFrame,
+div[data-testid="stExpander"] > div[data-testid="stExpanderContent"] .stSelectbox,
+div[data-testid="stExpander"] > div[data-testid="stExpanderContent"] .stButton {
+    border: none !important;
+    box-shadow: none !important;
+}
 
-page = st.session_state.menu_page
+/* Hover effects */
+div[data-testid="stExpander"] > div[data-testid="stExpanderHeader"][aria-expanded="true"]:hover,
+.streamlit-expanderHeader[aria-expanded="true"]:hover {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff5722 100%) !important;
+    box-shadow: 0 8px 20px rgba(255, 140, 0, 0.5) !important;
+    transform: translateY(-3px) !important;
+}
 
-# ─── LOGOUT CONFIRMATION ───
-if st.session_state.get("show_logout_confirm", False):
-    st.warning("🔓 ログアウトしますか？")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        col_yes, col_cancel = st.columns(2)
-        with col_yes:
-            if st.button("✅ はい、ログアウト", key="confirm_logout"):
-                st.session_state.authenticated = False
-                st.session_state.pop("show_logout_confirm", None)
-                rerun()
-        with col_cancel:
-            if st.button("❌ キャンセル", key="cancel_logout"):
-                st.session_state.pop("show_logout_confirm", None)
-                rerun()
+div[data-testid="stExpander"] > div[data-testid="stExpanderHeader"][aria-expanded="false"]:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%) !important;
+    color: #212529 !important;
+    border-color: #adb5bd !important;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
+    transform: translateY(-2px) !important;
+}
 
-# ─── GLOBAL DIALOG FUNCTIONS ───
+/* Force orange header styling with maximum specificity */
+[data-testid="stExpander"] [data-testid="stExpanderHeader"][aria-expanded="true"] {
+    background: linear-gradient(135deg, #ff8c00 0%, #ff6b35 100%) !important;
+    color: white !important;
+    border: 3px solid #ff6b35 !important;
+    box-shadow: 0 6px 15px rgba(255, 140, 0, 0.4) !important;
+    font-weight: bold !important;
+    border-radius: 12px !important;
+    margin-bottom: 10px !important;
+    padding: 15px 20px !important;
+    transform: translateY(-2px) !important;
+}
 
+/* Target the entire expander container for content borders */
+div[data-testid="stExpander"] {
+    border: 4px solid #ff8c00 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    margin-top: 10px !important;
+    background: white !important;
+    box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3) !important;
+}
 
-# Show dialogs if needed
+/* Remove borders from collapsed expanders */
+div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+</style>
 
+<script>
+// JavaScript to force styling after page load
+document.addEventListener('DOMContentLoaded', function() {
+    function applyStyling() {
+        // Force orange background for expanded headers
+        const expandedHeaders = document.querySelectorAll('[data-testid="stExpanderHeader"][aria-expanded="true"]');
+        expandedHeaders.forEach(header => {
+            header.style.background = 'linear-gradient(135deg, #ff8c00 0%, #ff6b35 100%)';
+            header.style.color = 'white';
+            header.style.border = '3px solid #ff6b35';
+            header.style.boxShadow = '0 6px 15px rgba(255, 140, 0, 0.4)';
+            header.style.fontWeight = 'bold';
+            header.style.borderRadius = '12px';
+            header.style.marginBottom = '10px';
+            header.style.padding = '15px 20px';
+            header.style.transform = 'translateY(-2px)';
+        });
+        
+        // Force orange borders for the entire expander container (not individual elements)
+        const expanders = document.querySelectorAll('[data-testid="stExpander"]');
+        expanders.forEach(expander => {
+            const isExpanded = expander.querySelector('[data-testid="stExpanderHeader"][aria-expanded="true"]');
+            if (isExpanded) {
+                expander.style.border = '4px solid #ff8c00';
+                expander.style.borderRadius = '12px';
+                expander.style.padding = '20px';
+                expander.style.marginTop = '10px';
+                expander.style.background = 'white';
+                expander.style.boxShadow = '0 4px 15px rgba(255, 140, 0, 0.3)';
+                
+                // Remove borders from all child elements
+                const childElements = expander.querySelectorAll('*');
+                childElements.forEach(child => {
+                    if (child !== expander) {
+                        child.style.border = 'none';
+                        child.style.boxShadow = 'none';
+                    }
+                });
+            } else {
+                expander.style.border = 'none';
+                expander.style.boxShadow = 'none';
+                expander.style.padding = '0';
+                expander.style.margin = '0';
+            }
+        });
+    }
+    
+    // Apply styling immediately
+    applyStyling();
+    
+    // Apply styling after a short delay to catch dynamic content
+    setTimeout(applyStyling, 100);
+    setTimeout(applyStyling, 500);
+    setTimeout(applyStyling, 1000);
+    
+    // Watch for changes and reapply styling
+    const observer = new MutationObserver(applyStyling);
+    observer.observe(document.body, { childList: true, subtree: true });
+});
+</script>
+""", unsafe_allow_html=True)
 
-# ─── PAGE 1: PCS Settings ───
-if page == "PCS Settings":
+# ─── PCS SETTINGS TAB ───
+with st.expander("➀PCS入力 ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+    # PCS Settings content
     st.header("⚙️ インバータの追加・管理")
 
     # — Add New PCS —
@@ -370,8 +487,9 @@ if page == "PCS Settings":
                 st.session_state.pop("edit_pcs", None)
                 rerun()
 
-# ─── PAGE 2: Modules ───
-elif page == "Modules":
+# ─── MODULES TAB ───
+with st.expander("➁モジュール入力 ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
+    # Modules content
     st.header("📱 モジュールの追加・管理")
 
     # — Add New Module —
@@ -479,11 +597,10 @@ elif page == "Modules":
                 st.session_state.pop("edit_mod", None)
                 rerun()
 
-# ─── PAGE 3: Circuit Config ───
-else:
+# ─── CIRCUIT CONFIG TAB ───
+with st.expander("➂回路構成 ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
+    # Circuit Config content
     st.header("🔢 回路構成判定")
-    
-
 
     # 1) select a saved PCS spec
     pcs_list = load_pcs()
@@ -539,8 +656,8 @@ else:
             key = f"ser_{i}_{j}"
             default = min_s if j==0 else 0
             s = c2.number_input("直列枚数", key=key,
-                               min_value=0, max_value=max_s,
-                               value=default, step=1)
+                                 min_value=0, max_value=max_s,
+                                 value=default, step=1)
             vals.append(s)
 
             if s>0:
@@ -614,3 +731,72 @@ else:
             </div>
         </div>
         """.format(total_mods=total_mods, power_kw=power/1000), unsafe_allow_html=True)
+
+# ─── LOGOUT TAB ───
+# Simple logout confirmation (not expandable)
+logout_selected = st.button("🔓 ログアウト", key="logout_btn")
+if logout_selected:
+    st.session_state.show_logout_confirm = True
+
+# Show logout confirmation if requested
+if st.session_state.get("show_logout_confirm", False):
+    st.markdown("---")
+    
+    # Create a centered container
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        # Dialog box styling
+        st.markdown("""
+        <div style="
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        ">
+        """, unsafe_allow_html=True)
+        
+        # Header with icon and title
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #ff4b4b 0%, #e63939 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: -20px -20px 20px -20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        ">
+            <span style="font-size: 20px;">🚪</span>
+            <span style="font-size: 16px; font-weight: bold;">ログアウト</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Question text
+        st.markdown("**ログアウトしますか？**")
+        st.markdown("")
+        
+        # Buttons
+        col_yes, col_cancel = st.columns(2)
+        with col_yes:
+            if st.button("✅ はい", key="confirm_logout", 
+                        help="Confirm logout", 
+                        use_container_width=True):
+                st.session_state.authenticated = False
+                st.session_state.pop("show_logout_confirm", None)
+                rerun()
+        with col_cancel:
+            if st.button("✘ いいえ", key="cancel_logout", 
+                        help="Cancel logout", 
+                        use_container_width=True):
+                st.session_state.pop("show_logout_confirm", None)
+                rerun()
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.markdown("---")
+
+# Set default page if not set
+if "menu_page" not in st.session_state:
+    st.session_state.menu_page = "PCS Settings"

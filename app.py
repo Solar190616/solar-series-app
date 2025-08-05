@@ -747,9 +747,19 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     st.markdown("### 🔧 2. モジュールの回路構成")
     st.markdown("---")
     
-    # MPPT instruction text
-    st.markdown("**※直列可能枚数の範囲内でシステム構成してください。**")
-    st.markdown("**※モジュールがない場合は\"0\"にしてください。**")
+   # MPPT instruction text in red
+st.markdown(
+    '<p style="color:red; font-weight:bold; margin-bottom: 0.5rem;">'
+    '※直列可能枚数の範囲内でシステム構成してください。'
+    '</p>',
+    unsafe_allow_html=True
+)
+st.markdown(
+    '<p style="color:red; font-weight:bold; margin-bottom: 1rem;">'
+    '※モジュールがない場合は"0"にしてください。'
+    '</p>',
+    unsafe_allow_html=True
+)
 
     # MPPT configuration loop
     any_err    = False

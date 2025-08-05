@@ -27,6 +27,14 @@ def init_db():
       mppt_max_current REAL
     )""")
     _conn.commit()
+    
+    # Migration: Add model_number column to existing pcs table if it doesn't exist
+    try:
+        _cur.execute("ALTER TABLE pcs ADD COLUMN model_number TEXT")
+        _conn.commit()
+    except sqlite3.OperationalError:
+        # Column already exists, ignore the error
+        pass
 
 def save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc):
     _cur.execute("""
@@ -56,23 +64,24 @@ def delete_module(model_no):
     _conn.commit()
 
 # --- New PCS functions ---
-def save_pcs(name, max_v, min_v, count, max_i):
+def save_pcs(name, model_number, max_v, min_v, count, max_i):
     _cur.execute("""
       INSERT OR REPLACE INTO pcs
-      (name, max_voltage, mppt_min_voltage, mppt_count, mppt_max_current)
-      VALUES (?, ?, ?, ?, ?)
-    """, (name, max_v, min_v, count, max_i))
+      (name, model_number, max_voltage, mppt_min_voltage, mppt_count, mppt_max_current)
+      VALUES (?, ?, ?, ?, ?, ?)
+    """, (name, model_number, max_v, min_v, count, max_i))
     _conn.commit()
 
 def load_pcs():
-    _cur.execute("SELECT name, max_voltage, mppt_min_voltage, mppt_count, mppt_max_current FROM pcs")
+    _cur.execute("SELECT name, model_number, max_voltage, mppt_min_voltage, mppt_count, mppt_max_current FROM pcs")
     rows = _cur.fetchall()
     return {
       row[0]: {
-        "max_voltage": row[1],
-        "mppt_min_voltage": row[2],
-        "mppt_count": row[3],
-        "mppt_max_current": row[4],
+        "model_number": row[1],
+        "max_voltage": row[2],
+        "mppt_min_voltage": row[3],
+        "mppt_count": row[4],
+        "mppt_max_current": row[5],
       }
       for row in rows
     }

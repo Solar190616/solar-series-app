@@ -884,25 +884,7 @@ if st.session_state.get("show_logout_confirm", False):
             margin: 20px 0;
         ">
         """, unsafe_allow_html=True)
-        
-        # Header with icon and title
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #ff4b4b 0%, #e63939 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin: -20px -20px 20px -20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        ">
-            <span style="font-size: 20px;">🚪</span>
-            <span style="font-size: 16px; font-weight: bold;">ログアウト</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
+               
         # Question text
         st.markdown("**ログアウトしますか？**")
         st.markdown("")

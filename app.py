@@ -479,9 +479,9 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
 
     # — Add New PCS —
     with st.expander("➕ 新しいPCSを追加"):
-        c1,c2 = c1.columns(2, gap="small")
-        name  = c2.text_input("PCS名称", key="new_pcs_name")
-        model_number = st.text_input("型番", key="new_pcs_model")
+        c1,c2 = st.columns(2, gap="small")
+        name  = c1.text_input("PCS名称", key="new_pcs_name")
+        model_number = c2.text_input("型番", key="new_pcs_model")
         c2,c3 = st.columns(2, gap="small")
         max_v = c2.number_input("最大電圧 (V)", key="new_pcs_max")
         min_v = c3.number_input("MPPT最小電圧 (V)", key="new_pcs_min")

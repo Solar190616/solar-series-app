@@ -764,23 +764,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     total_mods = 0
 
     for i in range(mppt_n):
-        st.markdown(
-            """
-            <div style="
-                background-color: #e0f0ff;
-                border-radius: 12px;
-                padding: 10px;
-                border: 1px solid #1c75bc;
-                text-align: center;
-                font-weight: bold;
-                font-size: 16px;
-                color: #1c75bc;
-                 ">
-                **🔷MPPT入力 {i+1}**
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.markdown(f"**MPPT入力 {i+1}**")
         ref_s = None
         vals  = []
 
@@ -818,9 +802,6 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
                          "直列枚数または使用回路数を減らしてください。", icon="🚫")
                 any_err = True
         
-        if i < mppt_n - 1:  # Add separator between MPPT sections
-            st.markdown("---")
-    
     st.markdown("---")
     
     # SECTION 3: 回路構成可否判定結果

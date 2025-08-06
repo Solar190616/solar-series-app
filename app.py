@@ -1,5 +1,3 @@
-import qrcode
-from PIL import Image
 import streamlit as st
 import math
 import pandas as pd
@@ -11,20 +9,26 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
+import qrcode
+from PIL import Image
+import streamlit as st
+import io
+
 # Replace this with your actual Streamlit app URL
 app_url = "https://solar-series-app-c5pizf5htsctsruqq9li2k.streamlit.app/"
 
 # Generate QR code
 qr = qrcode.make(app_url)
 
-# Optional: save to a file if needed
-# qr.save("qr_code.png")
+# Convert to byte buffer
+buf = io.BytesIO()
+qr.save(buf, format='PNG')
+buf.seek(0)
 
-# Display in app
+# Show in Streamlit
 st.markdown("### 📲 アプリを共有する")
-st.image(qr, caption="スマホでスキャンして開く", use_container_width=False)
+st.image(buf, caption="スマホでスキャンして開く", use_container_width=False)
 st.write(f"[🔗 アプリURLを開く]({app_url})")
-
 # Tell the browser about our manifest
 st.markdown(
     '<link rel="manifest" href="/manifest.json">',

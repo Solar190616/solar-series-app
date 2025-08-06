@@ -1,3 +1,5 @@
+import qrcode
+from PIL import Image
 import streamlit as st
 import math
 import pandas as pd
@@ -8,6 +10,20 @@ from db   import (
     save_module, load_modules, delete_module,
     save_pcs,    load_pcs,    delete_pcs
 )
+
+# Replace this with your actual Streamlit app URL
+app_url = "https://solar-series-app-c5pizf5htsctsruqq9li2k.streamlit.app/"
+
+# Generate QR code
+qr = qrcode.make(app_url)
+
+# Optional: save to a file if needed
+# qr.save("qr_code.png")
+
+# Display in app
+st.markdown("### 📲 アプリを共有する")
+st.image(qr, caption="スマホでスキャンして開く", use_column_width=False)
+st.write(f"[🔗 アプリURLを開く]({app_url})")
 
 # Tell the browser about our manifest
 st.markdown(
@@ -475,10 +491,10 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 # ─── Cautions TAB ───
 with st.expander("**⚠️ 注意**", expanded=False):
     st.markdown("""
-- **注1**：本判定結果は回路構成の可否を判断するもので、設置可否を判断するものではありません。  
-- **注2**：回路可能判定結果はモジュールリストに登録された電気特性を基に判定しています。  
-- **注3**：モジュールリストに登録された電気特性以外の性能は判定基準に含まれていません。  
-- **注4**：モジュールの経年劣化による影響は考慮していません。  
+**注1**：本判定結果は回路構成の可否を判断するもので、設置可否を判断するものではありません。  
+**注2**：回路可能判定結果はモジュールリストに登録された電気特性を基に判定しています。  
+**注3**：モジュールリストに登録された電気特性以外の性能は判定基準に含まれていません。  
+**注4**：モジュールの経年劣化による影響は考慮していません。  
     """)
 
 # ─── PCS SETTINGS TAB ───

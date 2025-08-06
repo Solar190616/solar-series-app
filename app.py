@@ -479,14 +479,15 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
 
     # — Add New PCS —
     with st.expander("➕ 新しいPCSを追加"):
+        c1,c2 = st.columns(2, gap="small")
         name  = st.text_input("PCS名称", key="new_pcs_name")
         model_number = st.text_input("型番", key="new_pcs_model")
-        c1,c2 = st.columns(2, gap="small")
-        max_v = c1.number_input("最大電圧 (V)", key="new_pcs_max")
-        min_v = c2.number_input("MPPT最小電圧 (V)", key="new_pcs_min")
-        c3,c4 = st.columns(2, gap="small")
-        count = c3.number_input("MPPT入力数", key="new_pcs_count", min_value=1, step=1)
-        max_i = c4.number_input("MPPT最大電流 (A)", key="new_pcs_cur", format="%.1f")
+        c2,c3 = st.columns(2, gap="small")
+        max_v = c2.number_input("最大電圧 (V)", key="new_pcs_max")
+        min_v = c3.number_input("MPPT最小電圧 (V)", key="new_pcs_min")
+        c4,c5 = st.columns(2, gap="small")
+        count = c4.number_input("MPPT入力数", key="new_pcs_count", min_value=1, step=3)
+        max_i = c5.number_input("MPPT最大電流 (A)", key="new_pcs_cur", format="%.1f")
         if st.button("PCS保存", key="btn_save_pcs"):
             if not name.strip():
                 st.error("名称は必須です")

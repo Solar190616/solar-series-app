@@ -22,7 +22,7 @@ qr = qrcode.make(app_url)
 
 # Display in app
 st.markdown("### 📲 アプリを共有する")
-st.image(qr, caption="スマホでスキャンして開く", use_column_width=False)
+st.image(qr, caption="スマホでスキャンして開く", use_container_width=False)
 st.write(f"[🔗 アプリURLを開く]({app_url})")
 
 # Tell the browser about our manifest

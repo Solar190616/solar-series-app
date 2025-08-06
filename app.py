@@ -9,32 +9,6 @@ from db   import (
     save_pcs,    load_pcs,    delete_pcs
 )
 
-import qrcode
-from PIL import Image
-import streamlit as st
-import io
-
-# Replace this with your actual Streamlit app URL
-app_url = "https://solar-series-app-c5pizf5htsctsruqq9li2k.streamlit.app/"
-
-# Generate QR code
-qr = qrcode.make(app_url)
-
-# Convert to byte buffer
-buf = io.BytesIO()
-qr.save(buf, format='PNG')
-buf.seek(0)
-
-# Show in Streamlit
-st.markdown("### 📲 アプリを共有する")
-st.image(buf, caption="スマホでスキャンして開く", use_container_width=False)
-st.write(f"[🔗 アプリURLを開く]({app_url})")
-# Tell the browser about our manifest
-st.markdown(
-    '<link rel="manifest" href="/manifest.json">',
-    unsafe_allow_html=True
-)
-
 # Register our service worker
 st.markdown(
     """

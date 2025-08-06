@@ -833,11 +833,11 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
             text-align: center;
         ">
             <h3 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">
-                ✅ 全 MPPT 構成は有効です
+                ✅ 回路構成可能です。
             </h3>
             <div style="display: flex; justify-content: space-around; align-items: center;">
                 <div style="
-                    background: white;
+                    background: orange;
                     border-radius: 8px;
                     padding: 12px;
                     margin: 0 8px;
@@ -848,7 +848,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
                     <div style="font-size: 24px; font-weight: bold; color: #1f77b4;">{total_mods} 枚</div>
                 </div>
                 <div style="
-                    background: white;
+                    background: orange;
                     border-radius: 8px;
                     padding: 12px;
                     margin: 0 8px;

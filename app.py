@@ -475,7 +475,10 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 # ─── PCS SETTINGS TAB ───
 with st.expander("【➀PCS入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
     # PCS Settings content
-    st.header("⚙️ インバータの追加・管理")
+    st.markdown(
+    "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
+    unsafe_allow_html=True
+    )
 
     # — Add New PCS —
     with st.expander("➕ 新しいPCSを追加"):

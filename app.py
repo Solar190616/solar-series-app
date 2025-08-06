@@ -764,7 +764,23 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     total_mods = 0
 
     for i in range(mppt_n):
-        st.markdown(f"**🔷MPPT入力 {i+1}**")
+        st.markdown(
+            """
+            <div style="
+                background-color: #e0f0ff;
+                border-radius: 12px;
+                padding: 10px;
+                border: 1px solid #1c75bc;
+                text-align: center;
+                font-weight: bold;
+                font-size: 16px;
+                color: #1c75bc;
+                 ">
+                **🔷MPPT入力 {i+1}**
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         ref_s = None
         vals  = []
 

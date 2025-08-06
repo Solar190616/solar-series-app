@@ -883,8 +883,7 @@ if logout_selected:
 
 # Show logout confirmation if requested
 if st.session_state.get("show_logout_confirm", False):
-    st.markdown("---")
-    
+       
     # Create a centered container
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -917,7 +916,7 @@ if st.session_state.get("show_logout_confirm", False):
                         use_container_width=True):
                 st.session_state.pop("show_logout_confirm", None)
                 rerun()
-        
+                            
         st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("---")

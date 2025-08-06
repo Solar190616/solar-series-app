@@ -473,7 +473,7 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 """, unsafe_allow_html=True)
 
 # ─── PCS SETTINGS TAB ───
-with st.expander("【➀PCS入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+with st.expander("【➀インバータ入力】    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
     # PCS Settings content
     st.markdown(
         "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
@@ -502,7 +502,7 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
     pcs_list = load_pcs()
     if pcs_list:
         st.markdown(
-            "<h4 style='margin-bottom: 10px;'>❖ 保存済みPCS/インバータ</h4>",
+            "<h4 style='margin-bottom: 10px;'>❖ インバータリスト</h4>",
             unsafe_allow_html=True
         )
         df_pcs = (
@@ -520,7 +520,7 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
         st.dataframe(df_pcs, use_container_width=True)
 
         choice = st.selectbox(
-            "🔽編集・削除するPCSを選択",
+            "🔽編集・削除するインバータを選択",
             df_pcs["名称"],
             key="pcs_choice"
         )
@@ -590,7 +590,7 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
                 rerun()
 
 # ─── MODULES TAB ───
-with st.expander("【➁モジュール入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
+with st.expander("【➁モジュール入力】    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
     # Modules content
     st.markdown(
         "<h4 style='margin-bottom: 10px;'>📱 モジュールの追加・管理</h4>",
@@ -706,7 +706,7 @@ with st.expander("【➁モジュール入力】※タブを展開/最小化す�
                 rerun()
 
 # ─── CIRCUIT CONFIG TAB ───
-with st.expander("【➂回路構成】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
+with st.expander("【➂回路構成】    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
     
     # SECTION 1: 直列可能枚数
     st.markdown("### 📊 1. 直列可能枚数")

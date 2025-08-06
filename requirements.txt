@@ -1,4 +1,6 @@
 streamlit
+qrcode[pil]
 pandas
 streamlit-option-menu
 streamlit-aggrid
+

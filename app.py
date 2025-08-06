@@ -473,7 +473,8 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 """, unsafe_allow_html=True)
 
 # ─── PCS SETTINGS TAB ───
-with st.expander("【➀PCS入力】\n※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+with st.expander("【➀PCS入力】",  expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+    st.caption("※タブを展開/最小化するにはここをタップ")
     # PCS Settings content
     st.header("⚙️ インバータの追加・管理")
 

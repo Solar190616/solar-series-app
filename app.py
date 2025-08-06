@@ -826,7 +826,7 @@ with st.expander("**【➂回路構成判定】**    ※タブを展開/最小�
     st.markdown("---")
     
     # SECTION 3: 回路構成可否判定結果
-    st.markdown("### ✅ 3. 回路構成可否判定結果")
+    st.markdown("### ✅ 3. 結果")
     st.markdown("---")
     
     # Final summary / error
@@ -849,7 +849,7 @@ with st.expander("**【➂回路構成判定】**    ※タブを展開/最小�
             text-align: center;
         ">
             <h3 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">
-                ✅ 全 MPPT 構成は有効です
+                ✅ 回路構成可能です。
             </h3>
             <div style="display: flex; justify-content: space-around; align-items: center;">
                 <div style="

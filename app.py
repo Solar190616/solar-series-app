@@ -837,7 +837,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
             </h3>
             <div style="display: flex; justify-content: space-around; align-items: center;">
                 <div style="
-                    background: orange;
+                    background: white;
                     border-radius: 8px;
                     padding: 12px;
                     margin: 0 8px;
@@ -848,7 +848,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
                     <div style="font-size: 24px; font-weight: bold; color: #1f77b4;">{total_mods} 枚</div>
                 </div>
                 <div style="
-                    background: orange;
+                    background: white;
                     border-radius: 8px;
                     padding: 12px;
                     margin: 0 8px;

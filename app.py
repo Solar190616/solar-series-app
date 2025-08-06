@@ -764,7 +764,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     total_mods = 0
 
     for i in range(mppt_n):
-        st.markdown(f"**MPPT入力 {i+1}**")
+        st.markdown(f"**🔷MPPT入力 {i+1}**")
         ref_s = None
         vals  = []
 

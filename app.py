@@ -479,14 +479,15 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
 
     # — Add New PCS —
     with st.expander("➕ 新しいPCSを追加"):
-        name  = st.text_input("PCS名称", key="new_pcs_name")
-        model_number = st.text_input("型番", key="new_pcs_model")
         c1,c2 = st.columns(2, gap="small")
-        max_v = c1.number_input("最大電圧 (V)", key="new_pcs_max")
-        min_v = c2.number_input("MPPT最小電圧 (V)", key="new_pcs_min")
+        name  = c1.text_input("PCS名称", key="new_pcs_name")
+        model_number = c2.text_input("型番", key="new_pcs_model")
         c3,c4 = st.columns(2, gap="small")
-        count = c3.number_input("MPPT入力数", key="new_pcs_count", min_value=1, step=1)
-        max_i = c4.number_input("MPPT最大電流 (A)", key="new_pcs_cur", format="%.1f")
+        max_v = c3.number_input("最大電圧 (V)", key="new_pcs_max")
+        min_v = c4.number_input("MPPT最小電圧 (V)", key="new_pcs_min")
+        c5,c6 = st.columns(2, gap="small")
+        count = c5.number_input("MPPT入力数", key="new_pcs_count", min_value=1, step=1)
+        max_i = c6.number_input("MPPT最大電流 (A)", key="new_pcs_cur", format="%.1f")
         if st.button("PCS保存", key="btn_save_pcs"):
             if not name.strip():
                 st.error("名称は必須です")
@@ -697,7 +698,8 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     
     # SECTION 1: 直列可能枚数
     st.markdown("### 📊 1. 直列可能枚数")
-       
+    st.markdown("---")
+    
     # Compact selection section
     col1, col2, col3 = st.columns(3, gap="small")
     
@@ -758,13 +760,14 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
         '</p>',
         unsafe_allow_html=True
     )
+    st.markdown("---")
 
     # MPPT configuration loop
     any_err    = False
     total_mods = 0
 
     for i in range(mppt_n):
-        st.markdown(f"**MPPT入力 {i+1}**")
+        st.markdown(f"**🔷MPPT入力 {i+1}**")
         ref_s = None
         vals  = []
 
@@ -802,11 +805,15 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
                          "直列枚数または使用回路数を減らしてください。", icon="🚫")
                 any_err = True
         
+        if i < mppt_n - 1:  # Add separator between MPPT sections
+            st.markdown("---")
+    
     st.markdown("---")
     
     # SECTION 3: 回路構成可否判定結果
     st.markdown("### ✅ 3. 回路構成可否判定結果")
-        
+    st.markdown("---")
+    
     # Final summary / error
     if any_err:
         st.error("⚠️ 構成にエラーがあります。上記メッセージをご確認ください。")
@@ -827,7 +834,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
             text-align: center;
         ">
             <h3 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">
-                ✅ 回路構成可能です。
+                ✅ 全 MPPT 構成は有効です
             </h3>
             <div style="display: flex; justify-content: space-around; align-items: center;">
                 <div style="

@@ -472,6 +472,15 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 </script>
 """, unsafe_allow_html=True)
 
+# ─── Cautions TAB ───
+with st.expander("**⚠️ 注意**", expanded=False):
+    st.markdown("""
+- **注1**：本判定結果は回路構成の可否を判断するもので、設置可否を判断するものではありません。  
+- **注2**：回路可能判定結果はモジュールリストに登録された電気特性を基に判定しています。  
+- **注3**：モジュールリストに登録された電気特性以外の性能は判定基準に含まれていません。  
+- **注4**：モジュールの経年劣化による影響は考慮していません。  
+    """)
+
 # ─── PCS SETTINGS TAB ───
 with st.expander("**【➀インバータ入力】**    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
     # PCS Settings content

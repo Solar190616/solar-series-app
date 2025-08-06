@@ -697,8 +697,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     
     # SECTION 1: 直列可能枚数
     st.markdown("### 📊 1. 直列可能枚数")
-    st.markdown("---")
-    
+       
     # Compact selection section
     col1, col2, col3 = st.columns(3, gap="small")
     
@@ -759,7 +758,6 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
         '</p>',
         unsafe_allow_html=True
     )
-    st.markdown("---")
 
     # MPPT configuration loop
     any_err    = False
@@ -811,8 +809,7 @@ with st.expander("【➂回路構成】※タブを展開/最小化するには�
     
     # SECTION 3: 回路構成可否判定結果
     st.markdown("### ✅ 3. 回路構成可否判定結果")
-    st.markdown("---")
-    
+        
     # Final summary / error
     if any_err:
         st.error("⚠️ 構成にエラーがあります。上記メッセージをご確認ください。")

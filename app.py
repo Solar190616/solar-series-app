@@ -476,8 +476,8 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 with st.expander("【➀PCS入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
     # PCS Settings content
     st.markdown(
-    "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
-    unsafe_allow_html=True
+        "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
+        unsafe_allow_html=True
     )
 
     # — Add New PCS —
@@ -501,7 +501,10 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
     # — Responsive PCS Table —
     pcs_list = load_pcs()
     if pcs_list:
-        st.subheader("■ 保存済みPCS/インバータ")
+        st.markdown(
+            "<h4 style='margin-bottom: 10px;'>❖ 保存済みPCS/インバータ</h4>",
+            unsafe_allow_html=True
+        )
         df_pcs = (
             pd.DataFrame.from_dict(pcs_list, orient="index")
               .reset_index()
@@ -517,7 +520,7 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
         st.dataframe(df_pcs, use_container_width=True)
 
         choice = st.selectbox(
-            "編集・削除するPCSを選択",
+            "🔽編集・削除するPCSを選択",
             df_pcs["名称"],
             key="pcs_choice"
         )
@@ -589,7 +592,10 @@ with st.expander("【➀PCS入力】※タブを展開/最小化するにはこ�
 # ─── MODULES TAB ───
 with st.expander("【➁モジュール入力】※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
     # Modules content
-    st.header("📱 モジュールの追加・管理")
+    st.markdown(
+        "<h4 style='margin-bottom: 10px;'>📱 モジュールの追加・管理</h4>",
+        unsafe_allow_html=True
+    )
 
     # — Add New Module —
     with st.expander("➕ 新しいモジュールを追加"):
@@ -613,7 +619,10 @@ with st.expander("【➁モジュール入力】※タブを展開/最小化す�
     # — Responsive Module Table —
     mods = load_modules()
     if mods:
-        st.subheader("■ モジュールリスト")
+        st.markdown(
+            "<h4 style='margin-bottom: 10px;'>❖ モジュールリスト</h4>",
+            unsafe_allow_html=True
+        )
         df_mod = pd.DataFrame([
             {
               "型番": mn,
@@ -628,7 +637,7 @@ with st.expander("【➁モジュール入力】※タブを展開/最小化す�
         ])
         st.dataframe(df_mod, use_container_width=True)
 
-        choice = st.selectbox("編集・削除するモジュールを選択",
+        choice = st.selectbox("🔽編集・削除するモジュールを選択",
                               df_mod["型番"], key="mod_choice")
         
         # Show confirmation buttons if delete is requested

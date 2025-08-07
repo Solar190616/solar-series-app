@@ -469,10 +469,9 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 # ─── Cautions TAB ───
 with st.expander("**⚠️ 注意**", expanded=False):
     st.markdown("""
-**注1**：本判定結果は回路構成の可否を判断するもので、設置可否を判断するものではありません。  
-**注2**：回路可能判定結果はモジュールリストに登録された電気特性を基に判定しています。  
-**注3**：モジュールリストに登録された電気特性以外の性能は判定基準に含まれていません。  
-**注4**：モジュールの経年劣化による影響は考慮していません。  
+        注1：本判定結果は回路構成の可否を判断するもので、設置可否を判断するものではありません。  
+        注2：回路可能判定結果はモジュール・インバータリストに登録された電気特性を基に判定しています。  
+        注3：モジュールの経年劣化による影響は考慮していません。  
     """)
 
 # ─── PCS SETTINGS TAB ───
@@ -480,6 +479,13 @@ with st.expander("**【➀インバータ入力】**    ※タブを展開/最�
     # PCS Settings content
     st.markdown(
         "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
+        unsafe_allow_html=True
+    )
+    # Inverter addition instruction text in red
+    st.markdown(
+        '<p style="color:red; margin-bottom: 0.4rem;">'
+        '※必要なインバータがリストにない場合は、追加してください。'
+        '</p>',
         unsafe_allow_html=True
     )
 
@@ -547,19 +553,32 @@ with st.expander("**【➀インバータ入力】**    ※タブを展開/最�
                         st.session_state.pop("delete_target_pcs", None)
                         rerun()
         else:
-            e1,e2 = st.columns(2, gap="small")
-            if e1.button("✏️ 編集", key="pcs_edit_btn"):
-                if st.session_state.get("edit_pcs") == choice:
-                    st.error("既にこのPCSを編集中です。保存またはキャンセルしてください。")
-                else:
-                    st.session_state["edit_pcs"] = choice
-                    rerun()
-            if e2.button("🗑️ 削除", key="pcs_del_btn"):
-                if st.session_state.get("edit_pcs") == choice:
-                    st.error("編集中は削除できません。保存またはキャンセルしてください。")
-                else:
-                    st.session_state.show_delete_confirm_pcs = True
-                    st.session_state.delete_target_pcs = choice
+            # Check if selected PCS is default
+            is_default_pcs = pcs_list[choice].get("is_default", False)
+            
+            e1, e2 = st.columns(2, gap="small")
+            
+            # Edit button - disabled for default PCS
+            if is_default_pcs:
+                e1.button("✏️ 編集", key="pcs_edit_btn", disabled=True, help="デフォルトPCSは編集できません")
+            else:
+                if e1.button("✏️ 編集", key="pcs_edit_btn"):
+                    if st.session_state.get("edit_pcs") == choice:
+                        st.error("既にこのPCSを編集中です。保存またはキャンセルしてください。")
+                    else:
+                        st.session_state["edit_pcs"] = choice
+                        rerun()
+            
+            # Delete button - disabled for default PCS
+            if is_default_pcs:
+                e2.button("🗑️ 削除", key="pcs_del_btn", disabled=True, help="デフォルトPCSは削除できません")
+            else:
+                if e2.button("🗑️ 削除", key="pcs_del_btn"):
+                    if st.session_state.get("edit_pcs") == choice:
+                        st.error("編集中は削除できません。保存またはキャンセルしてください。")
+                    else:
+                        st.session_state.show_delete_confirm_pcs = True
+                        st.session_state.delete_target_pcs = choice
 
     # — Edit PCS Form —
     if "edit_pcs" in st.session_state:
@@ -573,6 +592,9 @@ with st.expander("**【➀インバータ入力】**    ※タブを展開/最�
         count    = st.number_input("MPPT入力数",           value=p["mppt_count"], key="edit_pcs_count", min_value=1, step=1)
         max_i    = st.number_input("MPPT最大電流 (A)",  value=p["mppt_max_current"], key="edit_pcs_cur")
         
+        # Preserve default status when editing
+        is_currently_default = p.get("is_default", False)
+        
         col1, col2 = st.columns(2, gap="small")
         with col1:
             if st.button("変更保存", key="btn_save_pcs_edit"):
@@ -582,8 +604,8 @@ with st.expander("**【➀インバータ入力】**    ※タブを展開/最�
                     # Delete old entry if name changed
                     if new_name != nm:
                         delete_pcs(nm)
-                    # Save new entry
-                    save_pcs(new_name, model_number, max_v, min_v, int(count), max_i)
+                    # Save new entry with preserved default status
+                    save_pcs(new_name, model_number, max_v, min_v, int(count), max_i, is_currently_default)
                     st.success(f"✅ 更新しました → {new_name}")
                     st.session_state.pop("edit_pcs", None)
                     rerun()
@@ -600,6 +622,14 @@ with st.expander("**【➁モジュール入力】**    ※タブを展開/最�
         unsafe_allow_html=True
     )
 
+     # Module addition instruction text in red
+    st.markdown(
+        '<p style="color:red; margin-bottom: 0.4rem;">'
+        '※検討したモジュールがリストにない場合は、追加してください。'
+        '</p>',
+        unsafe_allow_html=True
+    )
+
     # — Add New Module —
     with st.expander("➕ 新しいモジュールを追加"):
         m1,m2 = st.columns(2, gap="small")
@@ -611,7 +641,7 @@ with st.expander("**【➁モジュール入力】**    ※タブを展開/最�
         c3,c4 = st.columns(2, gap="small")
         vmpp = c3.number_input("NOC Vmpp (V)", key="new_mod_vmpp")
         isc  = c4.number_input("NOC Isc (A)",  key="new_mod_isc")
-        tc   = st.number_input("温度係数 (%/℃)", key="new_mod_tc", value=-0.3)
+        tc   = st.number_input("開放電圧の温度係数 (%/℃)", key="new_mod_tc", value=-0.3)
         if st.button("モジュール保存", key="btn_save_mod"):
             if not manufacturer.strip() or not model_no.strip():
                 st.error("メーカー名と型番は必須です。")
@@ -687,7 +717,7 @@ with st.expander("**【➁モジュール入力】**    ※タブを展開/最�
         vc = st.number_input("STC Voc (V)",       value=d["voc_stc"],  key="edit_mod_voc")
         vm = st.number_input("NOC Vmpp (V)",      value=d["vmpp_noc"], key="edit_mod_vmpp")
         ic = st.number_input("NOC Isc (A)",       value=d["isc_noc"],  key="edit_mod_isc")
-        tc = st.number_input("温度係数 (%/℃)",     value=d["temp_coeff"],key="edit_mod_tc")
+        tc = st.number_input("開放電圧の温度係数 (%/℃)",     value=d["temp_coeff"],key="edit_mod_tc")
         
         col1, col2 = st.columns(2, gap="small")
         with col1:
@@ -712,8 +742,11 @@ with st.expander("**【➁モジュール入力】**    ※タブを展開/最�
 with st.expander("**【➂回路構成判定】**    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
     
     # SECTION 1: 直列可能枚数
-    st.markdown("### 📊 1. 直列可能枚数")
-    st.markdown("---")
+    st.markdown(
+        "<h4 style='margin-bottom: 10px;'>📊 1. 直列可能枚数</h4>",
+        unsafe_allow_html=True
+        )
+    st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
     
     # Compact selection section
     col1, col2, col3 = st.columns(3, gap="small")
@@ -757,25 +790,28 @@ with st.expander("**【➂回路構成判定】**    ※タブを展開/最小�
 
     st.info(f"直列可能枚数：最小 **{min_s}** 枚 ～ 最大 **{max_s}** 枚", icon="ℹ️")
     
-    st.markdown("---")
+    st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
     
     # SECTION 2: モジュールの回路構成
-    st.markdown("### 🔧 2. モジュールの回路構成")
+    st.markdown(
+        "<h4 style='margin-bottom: 10px;'>🔧 2. モジュールの回路構成</h4>",
+        unsafe_allow_html=True
+        )
         
    # MPPT instruction text in red
     st.markdown(
-        '<p style="color:red; font-weight:bold; margin-bottom: 0.5rem;">'
+        '<p style="color:red; margin-bottom: 0.3rem;">'
         '※直列可能枚数の範囲内でシステム構成してください。'
         '</p>',
         unsafe_allow_html=True
     )
     st.markdown(
-        '<p style="color:red; font-weight:bold; margin-bottom: 1rem;">'
+        '<p style="color:red; margin-bottom: 0.1rem;">'
         '※モジュールがない場合は"0"にしてください。'
         '</p>',
         unsafe_allow_html=True
     )
-    st.markdown("---")
+    st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
 
     # MPPT configuration loop
     any_err    = False
@@ -821,13 +857,13 @@ with st.expander("**【➂回路構成判定】**    ※タブを展開/最小�
                 any_err = True
         
         if i < mppt_n - 1:  # Add separator between MPPT sections
-            st.markdown("---")
+            st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
     
     # SECTION 3: 回路構成可否判定結果
-    st.markdown("### ✅ 3. 結果")
-    st.markdown("---")
+    st.markdown("### ✅ 3. 判定結果")
+    st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
     
     # Final summary / error
     if any_err:
@@ -894,9 +930,9 @@ if st.session_state.get("show_logout_confirm", False):
         st.markdown("""
         <div style="
             border-radius: 12px;
-            padding: 20px;
+            padding: 5px;
             text-align: center;
-            margin: 20px 0;
+            margin: 1x 0;
         ">
         """, unsafe_allow_html=True)
                
@@ -922,7 +958,7 @@ if st.session_state.get("show_logout_confirm", False):
                             
         st.markdown("</div>", unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<hr style='margin: 0.3rem 0; border: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
 
 # Set default page if not set
 if "menu_page" not in st.session_state:

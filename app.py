@@ -41,14 +41,45 @@ st.markdown("""
   .stApp > div[data-testid="stToolbar"] { display: none !important; }
   .stApp > div[data-testid="stStatusWidget"] { display: none !important; }
   
-  /* Hide any elements containing "Fork" or GitHub icons */
+  /* Hide GitHub and Fork elements more comprehensively */
   div:contains("Fork"), 
   a[href*="github.com"],
   [data-testid="stDeployButton"],
   .stDeployButton,
   .stApp > div:has-text("Fork"),
-  .stApp > div:has-text("GitHub") { 
+  .stApp > div:has-text("GitHub"),
+  /* Additional selectors for GitHub elements */
+  .stApp > div[data-testid="stDecoration"],
+  .stApp > div[data-testid="stDeployButton"],
+  .stApp > div[data-testid="stStatusWidget"],
+  .stApp > div[data-testid="stToolbar"],
+  /* Hide elements with GitHub-related text */
+  div:contains("Fork"),
+  div:contains("GitHub"),
+  span:contains("Fork"),
+  span:contains("GitHub"),
+  a:contains("Fork"),
+  a:contains("GitHub"),
+  /* Hide elements with GitHub icons */
+  svg[data-testid="GitHub"],
+  img[src*="github"],
+  svg[aria-label*="GitHub"],
+  /* Hide Streamlit's default header elements */
+  .stApp > header,
+  .stApp > footer,
+  /* Hide any element with GitHub-related classes */
+  .github,
+  .fork,
+  [class*="github"],
+  [class*="fork"],
+  /* Hide elements by attribute */
+  [data-testid*="github"],
+  [data-testid*="fork"],
+  [aria-label*="GitHub"],
+  [aria-label*="Fork"] { 
     display: none !important; 
+    visibility: hidden !important;
+    opacity: 0 !important;
   }
   
   /* Enhanced styling for menu tabs */
@@ -986,6 +1017,57 @@ if "menu_page" not in st.session_state:
 st.markdown("""
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Hide GitHub and Fork elements
+    function hideGitHubElements() {
+        // Hide elements containing "Fork" or "GitHub" text
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(element => {
+            if (element.textContent && (
+                element.textContent.includes('Fork') || 
+                element.textContent.includes('GitHub') ||
+                element.textContent.includes('fork') ||
+                element.textContent.includes('github')
+            )) {
+                element.style.display = 'none';
+                element.style.visibility = 'hidden';
+                element.style.opacity = '0';
+            }
+        });
+        
+        // Hide elements with GitHub-related attributes
+        const githubElements = document.querySelectorAll('[data-testid*="github"], [data-testid*="fork"], [aria-label*="GitHub"], [aria-label*="Fork"], [href*="github.com"]');
+        githubElements.forEach(element => {
+            element.style.display = 'none';
+            element.style.visibility = 'hidden';
+            element.style.opacity = '0';
+        });
+        
+        // Hide Streamlit decoration elements
+        const decorationElements = document.querySelectorAll('[data-testid="stDecoration"], .stDeployButton, [data-testid="stStatusWidget"], [data-testid="stToolbar"]');
+        decorationElements.forEach(element => {
+            element.style.display = 'none';
+            element.style.visibility = 'hidden';
+            element.style.opacity = '0';
+        });
+    }
+    
+    // Run immediately and also set up a mutation observer to catch dynamically added elements
+    hideGitHubElements();
+    
+    // Set up observer to catch dynamically added elements
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                hideGitHubElements();
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
     function applyStyling() {
         const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         

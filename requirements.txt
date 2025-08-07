@@ -4,4 +4,4 @@ pandas
 streamlit-option-menu
 streamlit-aggrid
 Pillow
-openpyx1
+

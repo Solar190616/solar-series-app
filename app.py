@@ -33,6 +33,24 @@ st.markdown("""
   .css-1d391kg { padding: 1rem !important; }
   .css-1lcbmhc { gap: 0.5rem !important; }
   
+  /* Hide GitHub elements */
+  [data-testid="stDecoration"] { display: none !important; }
+  .stDeployButton { display: none !important; }
+  .stApp > header { display: none !important; }
+  .stApp > footer { display: none !important; }
+  .stApp > div[data-testid="stToolbar"] { display: none !important; }
+  .stApp > div[data-testid="stStatusWidget"] { display: none !important; }
+  
+  /* Hide any elements containing "Fork" or GitHub icons */
+  div:contains("Fork"), 
+  a[href*="github.com"],
+  [data-testid="stDeployButton"],
+  .stDeployButton,
+  .stApp > div:has-text("Fork"),
+  .stApp > div:has-text("GitHub") { 
+    display: none !important; 
+  }
+  
   /* Enhanced styling for menu tabs */
   .stButton > button {
     width: 100%;

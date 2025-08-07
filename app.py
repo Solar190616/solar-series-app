@@ -1,6 +1,8 @@
 import streamlit as st
 import math
 import pandas as pd
+import qrcode
+from io import BytesIO
 
 from auth import check_login, create_user, update_password
 from db   import (
@@ -209,12 +211,75 @@ if not st.session_state.authenticated:
     # — Login form —
     user = st.text_input("ユーザー名", key="login_usr")
     pwd  = st.text_input("パスワード", type="password", key="login_pwd")
-    if st.button("ログイン", key="btn_login"):
-        if check_login(user, pwd):
-            st.session_state.authenticated = True
+    
+    # Create two columns for login button and QR code
+    col_login, col_qr = st.columns([1, 1])
+    
+    with col_login:
+        if st.button("ログイン", key="btn_login"):
+            if check_login(user, pwd):
+                st.session_state.authenticated = True
+                rerun()
+            else:
+                st.error("❌ ユーザー名またはパスワードが無効です")
+    
+    with col_qr:
+        qr_expanded = st.button("📱 QRコード", key="qr_btn", help="アプリをQRコードで共有")
+        if qr_expanded:
+            st.session_state.show_qr_code = True
+    
+    # Show QR code when button is clicked
+    if st.session_state.get("show_qr_code", False):
+        # QR Code generation function
+        def generate_qr_code(url):
+            """Generate QR code for the given URL"""
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(url)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            return img
+        
+        # Get current app URL
+        current_url = st.query_params.get('_stcore', None)
+        if current_url is None:
+            # Try to get the URL from Streamlit's session state or use a default
+            current_url = "http://localhost:8503"  # Default local URL
+        
+        st.markdown("**アプリのQRコード**")
+        st.markdown("このQRコードをスキャンしてアプリにアクセスできます。")
+        
+        # Generate QR code
+        qr_img = generate_qr_code(current_url)
+        
+        # Convert PIL image to bytes
+        img_buffer = BytesIO()
+        qr_img.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        
+        # Display QR code
+        st.image(img_buffer, width=200, caption="アプリのQRコード")
+        
+        # Display URL
+        st.markdown(f"**URL:** {current_url}")
+        
+        # Download button for QR code
+        st.download_button(
+            label="📥 QRコードをダウンロード",
+            data=img_buffer.getvalue(),
+            file_name="solar_app_qr.png",
+            mime="image/png"
+        )
+        
+        # Close button
+        if st.button("✖️ 閉じる", key="close_qr"):
+            st.session_state.pop("show_qr_code", None)
             rerun()
-        else:
-            st.error("❌ ユーザー名またはパスワードが無効です")
 
     st.stop()
 

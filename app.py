@@ -249,7 +249,7 @@ if not st.session_state.authenticated:
         current_url = st.query_params.get('_stcore', None)
         if current_url is None:
             # Try to get the URL from Streamlit's session state or use a default
-            current_url = "http://localhost:8503"  # Default local URL
+            current_url = "https://solar-series-app-c5pizf5htsctsruqq9li2k.streamlit.app/"  # Default local URL
         
         st.markdown("**アプリのQRコード**")
         st.markdown("このQRコードをスキャンしてアプリにアクセスできます。")

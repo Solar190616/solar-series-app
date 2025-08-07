@@ -3,6 +3,4 @@ qrcode[pil]
 pandas
 streamlit-option-menu
 streamlit-aggrid
-numpy
-qrcode
-openpyx1
+

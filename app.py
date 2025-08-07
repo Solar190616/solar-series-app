@@ -674,7 +674,7 @@ with st.expander("**【➁モジュール入力】**    ※タブを展開/最�
      # Module addition instruction text in red
     st.markdown(
         '<p style="color:red; margin-bottom: 0.4rem;">'
-        '※検討したモジュールがリストにない場合は、追加してください。'
+        '※検討したいモジュールがリストにない場合は、追加してください。'
         '</p>',
         unsafe_allow_html=True
     )

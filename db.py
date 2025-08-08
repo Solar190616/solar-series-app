@@ -58,6 +58,25 @@ def init_db():
         """, ("マルチパワコン", "SPM-DE55-A", 450.0, 35.0, 3, 14.0, 1))
         _conn.commit()
 
+    # Add default modules if no modules exist
+    _cur.execute("SELECT COUNT(*) FROM modules")
+    module_count = _cur.fetchone()[0]
+
+    if module_count == 0:
+        _cur.executemany(
+            """
+            INSERT INTO modules
+            (manufacturer, model_number, pmax_stc, voc_stc, vmpp_noc, isc_noc, temp_coeff)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                ("シャープ", "NQ-250AG", 250.0, 41.5, 33.0, 8.5, -0.29),
+                ("パナソニック", "VBHN250SJ33", 250.0, 44.8, 36.7, 8.0, -0.27),
+                ("ソーラーフロンティア", "SF175-S", 175.0, 48.0, 36.0, 5.5, -0.30),
+            ],
+        )
+        _conn.commit()
+
 def save_module(manufacturer, model_no, pmax, voc, vmpp, isc, tc):
     _cur.execute("""
       INSERT OR REPLACE INTO modules

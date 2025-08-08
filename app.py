@@ -592,7 +592,7 @@ with st.expander("**⚠️ 注意** ※タブを展開/最小化するにはこ�
     """)
 
 # ─── PCS SETTINGS TAB ───
-with st.expander("**【➀インバータ入力】**", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+with st.expander("**【➀インバータ入力】**", expanded=st.session_state.get("menu_page") == "PCS Settings"):
     # PCS Settings content
     st.markdown(
         "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
@@ -1080,7 +1080,7 @@ if st.session_state.get("show_logout_confirm", False):
 
 # Set default page if not set
 if "menu_page" not in st.session_state:
-    st.session_state.menu_page = "PCS Settings"
+    st.session_state.menu_page = None
 
 # JavaScript for enhanced styling
 st.markdown("""

@@ -113,11 +113,20 @@ def create_user(user, pw):
 def update_password(user, new_pw):
     # Ensure permanent credentials are available
     ensure_permanent_credentials()
-    
+
     conn = get_db(); c = conn.cursor()
-    c.execute("UPDATE users SET password_hash=? WHERE username=?",
-              (hash_password(new_pw), user))
-    conn.commit(); conn.close()
+    c.execute("SELECT 1 FROM users WHERE username=?", (user,))
+    if not c.fetchone():
+        conn.close()
+        return False
+
+    c.execute(
+        "UPDATE users SET password_hash=? WHERE username=?",
+        (hash_password(new_pw), user),
+    )
+    conn.commit()
+    conn.close()
+    return True
 
 # Initialize permanent credentials when module is imported
 ensure_permanent_credentials()

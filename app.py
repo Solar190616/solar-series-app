@@ -11,16 +11,6 @@ from db   import (
     save_pcs, load_pcs, delete_pcs
 )
 
-st.set_page_config(
-    page_title="Your App",
-    page_icon="🔒",
-    menu_items={
-        "Get help": None,
-        "Report a bug": None,
-        "About": None
-    }
-)
-
 # Register our service worker
 st.markdown(
     """

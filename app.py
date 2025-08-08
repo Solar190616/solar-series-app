@@ -581,7 +581,7 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 """, unsafe_allow_html=True)
 
 # ─── 操作方法 ───
-st.markdown(""※タブ\u2780\u2192\u2781\u2192\u2782を順番に確認し、回路構成可否を判定してください。"")
+st.markdown(""タブ\u2780\u2192\u2781\u2192\u2782を順番に確認し、回路構成可否を判定してください。"")
 
 # ─── Cautions TAB ───
 with st.expander("**⚠️ 注意** ※タブを展開/最小化するにはここをタップ", expanded=False):

@@ -1132,7 +1132,29 @@ document.addEventListener('DOMContentLoaded', function() {
         childList: true,
         subtree: true
     });
-    
+
+    function updateRowNumbers() {
+        const tables = document.querySelectorAll('div[data-testid="stDataFrame"] table, div[data-testid="stTable"] table');
+        tables.forEach(table => {
+            const headerCell = table.querySelector('thead th:first-child');
+            if (headerCell) {
+                headerCell.textContent = 'No.';
+                headerCell.style.pointerEvents = 'none';
+                headerCell.style.cursor = 'default';
+                const sortIcons = headerCell.querySelectorAll('svg');
+                sortIcons.forEach(icon => icon.style.display = 'none');
+            }
+
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach((row, idx) => {
+                const firstCell = row.querySelector('th, td');
+                if (firstCell) {
+                    firstCell.textContent = idx + 1;
+                }
+            });
+        });
+    }
+
     function applyStyling() {
         const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         
@@ -1453,6 +1475,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        updateRowNumbers();
     }
     
     applyStyling();

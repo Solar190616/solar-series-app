@@ -17,3 +17,7 @@ showSidebarNavigation = false
 
 [global]
 hideStreamlitMark = true
+
+[ui]
+hideTopBar = true
+

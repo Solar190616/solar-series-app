@@ -16,7 +16,7 @@ st.set_page_config(
     page_icon="🔒",
     menu_items={
         "Get help": None,
-        "Report a bug": None,
+        "Settings": None,
         "About": None
     }
 )

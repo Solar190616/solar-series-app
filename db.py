@@ -7,6 +7,7 @@ _cur  = _conn.cursor()
 
 def init_db():
     # existing modules table
+    # modules table
     _cur.execute("""
     CREATE TABLE IF NOT EXISTS modules(
       manufacturer TEXT,
@@ -18,6 +19,7 @@ def init_db():
       temp_coeff REAL
     )""")
     # new pcs table
+    # pcs table includes flag for default PCS selection
     _cur.execute("""
     CREATE TABLE IF NOT EXISTS pcs(
       name TEXT PRIMARY KEY,
@@ -86,6 +88,7 @@ def delete_module(model_no):
     _conn.commit()
 
 # --- New PCS functions ---
+# --- PCS functions ---
 def save_pcs(name, model_number, max_v, min_v, count, max_i, is_default=False):
     # If this PCS is being set as default, first unset any existing default
     if is_default:
@@ -111,9 +114,3 @@ def load_pcs():
         "mppt_max_current": row[5],
         "is_default": bool(row[6]) if row[6] is not None else False,
       }
-      for row in rows
-    }
-
-def delete_pcs(name):
-    _cur.execute("DELETE FROM pcs WHERE name=?", (name,))
-    _conn.commit()

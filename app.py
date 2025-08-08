@@ -1150,6 +1150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const firstCell = row.querySelector('th, td');
                 if (firstCell) {
                     firstCell.textContent = idx + 1;
+                    firstCell.textContent = idx;
                 }
             });
         });

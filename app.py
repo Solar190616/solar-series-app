@@ -580,8 +580,11 @@ div[data-testid="stExpander"]:not([data-testid*="expanded"]) {
 </script>
 """, unsafe_allow_html=True)
 
+# ─── 操作方法 ───
+st.markdown(""タブ➀➤➁➤➂を順番に確認し、回路構成可否を判定してください。"")
+
 # ─── Cautions TAB ───
-with st.expander("**⚠️ 注意**", expanded=False):
+with st.expander("**⚠️ 注意** ※タブを展開/最小化するにはここをタップ", expanded=False):
     st.markdown("""
         注1：本判定結果は回路構成の可否を判断するもので、設置可否を判断するものではありません。  
         注2：回路可能判定結果はモジュール・インバータリストに登録された電気特性を基に判定しています。  
@@ -589,7 +592,7 @@ with st.expander("**⚠️ 注意**", expanded=False):
     """)
 
 # ─── PCS SETTINGS TAB ───
-with st.expander("**【➀インバータ入力】**    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
+with st.expander("**【➀インバータ入力】**", expanded=st.session_state.get("menu_page", "PCS Settings") == "PCS Settings"):
     # PCS Settings content
     st.markdown(
         "<h4 style='margin-bottom: 10px;'>⚙️ インバータの追加・管理</h4>",
@@ -729,7 +732,7 @@ with st.expander("**【➀インバータ入力】**    ※タブを展開/最�
                 rerun()
 
 # ─── MODULES TAB ───
-with st.expander("**【➁モジュール入力】**    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Modules"):
+with st.expander("**【➁モジュール入力】**", expanded=st.session_state.get("menu_page") == "Modules"):
     # Modules content
     st.markdown(
         "<h4 style='margin-bottom: 10px;'>📱 モジュールの追加・管理</h4>",
@@ -853,7 +856,7 @@ with st.expander("**【➁モジュール入力】**    ※タブを展開/最�
                 rerun()
 
 # ─── CIRCUIT CONFIG TAB ───
-with st.expander("**【➂回路構成判定】**    ※タブを展開/最小化するにはここをタップ", expanded=st.session_state.get("menu_page") == "Circuit Config"):
+with st.expander("**【➂回路構成判定】**", expanded=st.session_state.get("menu_page") == "Circuit Config"):
     
     # SECTION 1: 直列可能枚数
     st.markdown(

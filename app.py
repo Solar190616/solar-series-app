@@ -871,8 +871,9 @@ with st.expander("**【➂回路構成判定】**    ※タブを展開/最小�
         if not pcs_list:
             st.warning("⚠️ 先に「PCS入力」タブで PCS/インバータを追加してください。")
             st.stop()
-        spec = st.selectbox("PCSを選択", list(pcs_list.keys()), key="cfg_pcs")
-        pcs = pcs_list[spec]
+        options = [pcs["model_number"] for pcs in pcs_list.values()]
+        model = st.selectbox("PCSを選択", options, key="cfg_pcs")
+        pcs = next(p for p in pcs_list.values() if p["model_number"] == model)
 
     # Module selection
     with col2:

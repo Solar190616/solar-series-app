@@ -12,11 +12,12 @@ from db   import (
 )
 
 st.set_page_config(
+st.set_page_config(
     page_title="Your App",
     page_icon="🔒",
     menu_items={
         "Get help": None,
-        "Settings": None,
+        "Report a bug": None,
         "About": None
     }
 )
